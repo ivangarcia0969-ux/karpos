@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-native",
+    "lib": ["ES2022"],
+    "types": ["expo-router"],
+    "paths": {
+      "@/*": ["./src/*"],
+      "@karpos/sdk": ["../../packages/sdk/src/index.ts"],
+      "@karpos/types": ["../../packages/types/src/index.ts"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"]
+}

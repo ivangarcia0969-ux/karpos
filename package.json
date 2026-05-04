@@ -1,0 +1,41 @@
+{
+  "name": "karpos",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Karpos — SaaS de manejo integral de cultivos frutales",
+  "packageManager": "pnpm@9.10.0",
+  "engines": {
+    "node": ">=20.10",
+    "pnpm": ">=9"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "test": "turbo run test",
+    "test:e2e": "turbo run test:e2e",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
+    "db:migrate": "node scripts/migrate.mjs",
+    "db:seed": "node scripts/seed.mjs",
+    "db:reset": "node scripts/reset.mjs",
+    "license:check": "license-checker --production --summary --excludePackages=karpos",
+    "sast": "semgrep --config=auto --error",
+    "clean": "turbo run clean && rimraf node_modules .turbo"
+  },
+  "devDependencies": {
+    "turbo": "2.0.14",
+    "prettier": "3.3.3",
+    "typescript": "5.5.4",
+    "rimraf": "6.0.1",
+    "license-checker": "25.0.1",
+    "@types/node": "20.14.10",
+    "tsx": "4.16.2"
+  },
+  "pnpm": {
+    "overrides": {
+      "semver": ">=7.5.2"
+    }
+  }
+}

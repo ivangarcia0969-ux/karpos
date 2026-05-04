@@ -1,0 +1,68 @@
+name: Deploy · Staging
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-22.04
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Login to ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build and push api
+        run: |
+          docker build -f apps/api/Dockerfile \
+            -t ${{ steps.ecr.outputs.registry }}/karpos-api:${{ github.sha }} \
+            -t ${{ steps.ecr.outputs.registry }}/karpos-api:staging .
+          docker push --all-tags ${{ steps.ecr.outputs.registry }}/karpos-api
+
+      - name: Build and push web
+        run: |
+          docker build -f apps/web/Dockerfile \
+            -t ${{ steps.ecr.outputs.registry }}/karpos-web:${{ github.sha }} \
+            -t ${{ steps.ecr.outputs.registry }}/karpos-web:staging .
+          docker push --all-tags ${{ steps.ecr.outputs.registry }}/karpos-web
+
+      - name: Build and push ml
+        run: |
+          docker build -f apps/ml/Dockerfile \
+            -t ${{ steps.ecr.outputs.registry }}/karpos-ml:${{ github.sha }} \
+            -t ${{ steps.ecr.outputs.registry }}/karpos-ml:staging .
+          docker push --all-tags ${{ steps.ecr.outputs.registry }}/karpos-ml
+
+      - name: Set kube context
+        uses: aws-actions/amazon-eks-update-kubeconfig@v1
+        with:
+          cluster-name: ${{ vars.EKS_CLUSTER_NAME }}
+
+      - name: Helm upgrade
+        run: |
+          helm upgrade --install karpos infra/helm/karpos \
+            --namespace karpos-staging --create-namespace \
+            --set image.tag=${{ github.sha }} \
+            --set environment=staging \
+            -f infra/helm/karpos/values-staging.yaml \
+            --wait --timeout 10m

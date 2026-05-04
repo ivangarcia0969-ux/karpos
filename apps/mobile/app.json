@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "Karpos",
+    "slug": "karpos",
+    "scheme": "karpos",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "platforms": ["ios", "android"],
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0E5C3A"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "ag.karpos.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Karpos usa la cámara para registrar evidencias en campo.",
+        "NSLocationWhenInUseUsageDescription": "Karpos usa la ubicación para asociar registros a coordenadas precisas.",
+        "NSPhotoLibraryUsageDescription": "Karpos accede a la galería para adjuntar fotos a las labores."
+      }
+    },
+    "android": {
+      "package": "ag.karpos.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0E5C3A"
+      },
+      "permissions": ["CAMERA", "ACCESS_FINE_LOCATION", "READ_EXTERNAL_STORAGE", "WRITE_EXTERNAL_STORAGE"]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      ["expo-camera", { "cameraPermission": "Karpos usa la cámara para diagnóstico de hojas y frutos." }]
+    ]
+  }
+}

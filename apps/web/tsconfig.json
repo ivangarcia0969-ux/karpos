@@ -1,0 +1,23 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "preserve",
+    "strict": true,
+    "incremental": true,
+    "noEmit": true,
+    "plugins": [{ "name": "next" }],
+    "paths": {
+      "@/*": ["./src/*"],
+      "@karpos/types": ["../../packages/types/src/index.ts"],
+      "@karpos/sdk": ["../../packages/sdk/src/index.ts"],
+      "@karpos/ui": ["../../packages/ui/src/index.ts"],
+      "@karpos/ui/globals.css": ["../../packages/ui/src/globals.css"],
+      "@karpos/i18n": ["../../packages/i18n/src/index.ts"]
+    }
+  },
+  "include": ["next-env.d.ts", "src/**/*", ".next/types/**/*.ts"],
+  "exclude": ["node_modules", ".next"]
+}

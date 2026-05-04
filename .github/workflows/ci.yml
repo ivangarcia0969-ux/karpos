@@ -1,0 +1,124 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  node:
+    name: lint · typecheck · test · sast · licenses
+    runs-on: ubuntu-22.04
+    services:
+      postgres:
+        image: timescale/timescaledb-ha:pg16
+        env:
+          POSTGRES_USER: karpos
+          POSTGRES_PASSWORD: dev
+          POSTGRES_DB: karpos
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U karpos -d karpos"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with: { version: 9.10.0 }
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: License check
+        run: pnpm license:check
+        continue-on-error: false
+
+      - name: Migrate (smoke)
+        env:
+          DATABASE_URL: postgres://karpos:dev@localhost:5432/karpos
+        run: node scripts/migrate.mjs
+
+      - name: Tests
+        env:
+          DATABASE_URL: postgres://karpos:dev@localhost:5432/karpos
+          REDIS_URL: redis://localhost:6379
+        run: pnpm test
+
+      - name: Semgrep SAST
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: 'p/owasp-top-ten p/typescript p/javascript p/secrets'
+          generateSarif: true
+
+  ml:
+    name: ml · ruff · mypy · pytest
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - name: Install
+        working-directory: apps/ml
+        run: |
+          pip install -e '.[dev]'
+      - name: Lint
+        working-directory: apps/ml
+        run: ruff check .
+      - name: Typecheck
+        working-directory: apps/ml
+        run: mypy app
+      - name: Tests
+        working-directory: apps/ml
+        run: pytest -q
+
+  web-e2e:
+    name: web · playwright
+    runs-on: ubuntu-22.04
+    needs: [node]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9.10.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version-file: '.nvmrc', cache: 'pnpm' }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @karpos/web build
+      - run: pnpm --filter @karpos/web exec playwright install --with-deps chromium
+      - run: pnpm --filter @karpos/web test:e2e
+
+  docker:
+    name: docker · build images
+    runs-on: ubuntu-22.04
+    needs: [node, ml]
+    if: github.ref == 'refs/heads/main'
+    permissions: { id-token: write, contents: read }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build api
+        run: docker build -f apps/api/Dockerfile -t karpos-api:${{ github.sha }} .
+      - name: Build web
+        run: docker build -f apps/web/Dockerfile -t karpos-web:${{ github.sha }} .
+      - name: Build ml
+        run: docker build -f apps/ml/Dockerfile -t karpos-ml:${{ github.sha }} .

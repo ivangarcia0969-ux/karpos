@@ -1,0 +1,7 @@
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Karpos">
+  <title>Karpos</title>
+  <rect width="64" height="64" rx="12" fill="#0E5C3A"/>
+  <path d="M32 12 C44 12 52 22 52 32 C52 44 44 52 32 52 C20 52 12 44 12 34 C12 22 20 12 32 12 Z" fill="#FAF7F2"/>
+  <path d="M40 12 C50 6 58 12 58 20 C52 26 42 24 38 18 Z" fill="#3FA66B"/>
+  <circle cx="24" cy="36" r="4" fill="#F0B23C"/>
+</svg>

@@ -1,0 +1,19 @@
+{
+  "name": "@karpos/config",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./index.cjs",
+  "exports": {
+    "./eslint": "./eslint.config.js",
+    "./tailwind": "./tailwind.preset.js",
+    "./tsconfig": "./tsconfig.json"
+  },
+  "scripts": { "lint": "echo skip", "typecheck": "echo skip" },
+  "dependencies": {
+    "tailwindcss": "3.4.10",
+    "@typescript-eslint/parser": "8.5.0",
+    "@typescript-eslint/eslint-plugin": "8.5.0",
+    "eslint-config-prettier": "9.1.0"
+  }
+}

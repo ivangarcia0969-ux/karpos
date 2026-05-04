@@ -1,0 +1,8 @@
+apiVersion: v2
+name: karpos
+description: Karpos — fruit-crop management SaaS (api + web + ml + jobs).
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+maintainers:
+  - name: Karpos Platform Team

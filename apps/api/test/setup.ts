@@ -1,0 +1,10 @@
+import 'reflect-metadata';
+process.env.DATABASE_URL ??= 'postgres://karpos:dev@localhost:5432/karpos';
+process.env.REDIS_URL ??= 'redis://localhost:6379';
+process.env.OIDC_ISSUER ??= 'http://localhost:8081/realms/karpos';
+process.env.OIDC_CLIENT_ID ??= 'karpos-web';
+process.env.OIDC_CLIENT_SECRET ??= 'test';
+process.env.JWT_ISSUER ??= 'http://localhost:8081/realms/karpos';
+process.env.S3_ENDPOINT ??= 'http://localhost:9000';
+process.env.S3_ACCESS_KEY ??= 'karpos';
+process.env.S3_SECRET_KEY ??= 'karpos-dev';

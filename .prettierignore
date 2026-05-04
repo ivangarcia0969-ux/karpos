@@ -1,0 +1,9 @@
+**/node_modules
+**/.next
+**/.turbo
+**/dist
+**/build
+**/coverage
+**/.expo
+pnpm-lock.yaml
+**/CHANGELOG.md

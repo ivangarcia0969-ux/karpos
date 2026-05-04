@@ -1,0 +1,8 @@
+Contact: mailto:security@karpos.example
+Contact: https://karpos.example/security
+Expires: 2027-05-04T00:00:00Z
+Encryption: https://karpos.example/.well-known/pgp-key.asc
+Policy: https://karpos.example/docs/security/security-policy
+Acknowledgments: https://karpos.example/security/hall-of-fame
+Preferred-Languages: es, en
+Canonical: https://karpos.example/.well-known/security.txt

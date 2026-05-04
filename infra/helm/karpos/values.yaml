@@ -1,0 +1,92 @@
+environment: staging
+
+image:
+  registry: ""
+  tag: latest
+  pullPolicy: IfNotPresent
+
+api:
+  enabled: true
+  replicas: 2
+  image: karpos-api
+  port: 4000
+  resources:
+    requests: { cpu: 200m, memory: 512Mi }
+    limits:   { cpu: "2",  memory: 1Gi }
+  env: []
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPU: 70
+
+web:
+  enabled: true
+  replicas: 2
+  image: karpos-web
+  port: 3000
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits:   { cpu: "1",  memory: 512Mi }
+
+ml:
+  enabled: true
+  replicas: 1
+  image: karpos-ml
+  port: 8000
+  resources:
+    requests: { cpu: 500m, memory: 1Gi }
+    limits:   { cpu: "2",  memory: 4Gi }
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-body-size: 25m
+  hosts:
+    web: app.staging.karpos.example
+    api: api.staging.karpos.example
+  tls:
+    - secretName: karpos-tls
+      hosts:
+        - app.staging.karpos.example
+        - api.staging.karpos.example
+
+postgresql:
+  external:
+    enabled: true
+    secretName: karpos-db
+    secretKey: DATABASE_URL
+
+redis:
+  external:
+    enabled: true
+    secretName: karpos-redis
+    secretKey: REDIS_URL
+
+s3:
+  bucket: karpos-staging-files
+  region: us-east-1
+
+oidc:
+  issuer: https://auth.staging.karpos.example/realms/karpos
+  audience: karpos-api
+  clientId: karpos-web
+
+observability:
+  otel:
+    endpoint: http://otel-collector.observability:4318
+  sentry:
+    dsnSecretRef: karpos-sentry
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+  seccompProfile: { type: RuntimeDefault }
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities: { drop: [ALL] }
+  readOnlyRootFilesystem: true
