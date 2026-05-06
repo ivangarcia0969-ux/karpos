@@ -20,6 +20,21 @@ export const AskSchema = z.object({
 });
 export type AskDto = z.infer<typeof AskSchema>;
 
+interface Citation {
+  documentId: string;
+  title: string;
+  snippet: string;
+  score: number;
+}
+
+interface LlmResult {
+  content: string;
+  citations: unknown;
+  tokensIn: number;
+  tokensOut: number;
+  model: string;
+}
+
 @Injectable()
 export class CopilotService {
   constructor(
@@ -86,21 +101,19 @@ export class CopilotService {
     });
   }
 
-  private async retrieveContext(
-    tx: Database,
-    orgId: string,
-    question: string,
-  ): Promise<Array<{ documentId: string; title: string; snippet: string; score: number }>> {
-    // Embedding lookup is delegated to apps/ml; here we keep a stub that returns empty
-    // when no embedding service is configured. Tenant + global corpus scoping enforced via RLS.
+  private async retrieveContext(tx: Database, orgId: string, question: string): Promise<Citation[]> {
     const env = loadEnv();
     if (!env.ML_SERVICE_URL) return [];
 
     try {
       const res = await fetch(`${env.ML_SERVICE_URL}/embed`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json', authorization: `Bearer ${env.ML_API_KEY ?? ''}` },
+        headers: {
+          'content-type': 'application/json',
+          authorization: `Bearer ${env.ML_API_KEY ?? ''}`,
+        },
         body: JSON.stringify({ text: question }),
+        signal: AbortSignal.timeout(5_000),
       });
       if (!res.ok) return [];
       const { embedding } = (await res.json()) as { embedding: number[] };
@@ -128,45 +141,133 @@ export class CopilotService {
     }
   }
 
-  private async callLlm(
-    question: string,
-    citations: Array<{ documentId: string; title: string; snippet: string; score: number }>,
-    context: AskDto['context'],
-  ): Promise<{ content: string; citations: unknown; tokensIn: number; tokensOut: number; model: string }> {
+  private async callLlm(question: string, citations: Citation[], context: AskDto['context']): Promise<LlmResult> {
     const env = loadEnv();
-    if (!env.ANTHROPIC_API_KEY && !env.OPENAI_API_KEY) {
-      return {
-        content:
-          'El asistente Karpos IQ no está configurado en este entorno. Configura ANTHROPIC_API_KEY u OPENAI_API_KEY para activar respuestas. Pregunta: ' +
-          question,
-        citations,
-        tokensIn: 0,
-        tokensOut: 0,
-        model: 'stub',
-      };
+
+    if (env.ANTHROPIC_API_KEY) {
+      return this.callAnthropic(question, citations, context, env.ANTHROPIC_API_KEY);
     }
-    // Real provider invocation lives in apps/ml when running in production; here we keep
-    // a thin shim that emits a deterministic, citation-grounded answer.
+
+    if (env.OPENAI_API_KEY) {
+      return this.callOpenAi(question, citations, context, env.OPENAI_API_KEY);
+    }
+
+    return this.stubAnswer(question, citations, context);
+  }
+
+  private async callAnthropic(
+    question: string,
+    citations: Citation[],
+    context: AskDto['context'],
+    apiKey: string,
+  ): Promise<LlmResult> {
+    const systemPrompt = this.buildSystemPrompt(context);
+    const userMessage = this.buildUserMessage(question, citations);
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1024,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userMessage }],
+      }),
+      signal: AbortSignal.timeout(30_000),
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Anthropic API error ${res.status}: ${err}`);
+    }
+
+    const data = (await res.json()) as {
+      content: { type: string; text: string }[];
+      usage: { input_tokens: number; output_tokens: number };
+      model: string;
+    };
+
+    const text = data.content.find((b) => b.type === 'text')?.text ?? '';
     return {
-      content: this.composeGroundedAnswer(question, citations, context),
+      content: text,
       citations,
-      tokensIn: question.length,
-      tokensOut: 0,
-      model: 'stub',
+      tokensIn: data.usage.input_tokens,
+      tokensOut: data.usage.output_tokens,
+      model: data.model,
     };
   }
 
-  private composeGroundedAnswer(
+  private async callOpenAi(
     question: string,
-    citations: Array<{ title: string; snippet: string; score: number }>,
+    citations: Citation[],
     context: AskDto['context'],
-  ): string {
-    const head = context?.species
-      ? `Contexto: cultivo ${context.species}.`
-      : 'Contexto agronómico general.';
-    const refs = citations
-      .map((c, i) => `[${i + 1}] ${c.title} — ${c.snippet}`)
-      .join('\n');
-    return `${head}\n\nPregunta: ${question}\n\nFuentes encontradas:\n${refs || '(sin fuentes en el corpus)'}\n\nResumen: la respuesta detallada se compone con LLM en producción.`;
+    apiKey: string,
+  ): Promise<LlmResult> {
+    const systemPrompt = this.buildSystemPrompt(context);
+    const userMessage = this.buildUserMessage(question, citations);
+
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${apiKey}`,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userMessage },
+        ],
+        max_tokens: 1024,
+      }),
+      signal: AbortSignal.timeout(30_000),
+    });
+
+    if (!res.ok) throw new Error(`OpenAI API error ${res.status}`);
+
+    const data = (await res.json()) as {
+      choices: { message: { content: string } }[];
+      usage: { prompt_tokens: number; completion_tokens: number };
+      model: string;
+    };
+
+    return {
+      content: data.choices[0]?.message.content ?? '',
+      citations,
+      tokensIn: data.usage.prompt_tokens,
+      tokensOut: data.usage.completion_tokens,
+      model: data.model,
+    };
+  }
+
+  private buildSystemPrompt(context: AskDto['context']): string {
+    const cropLine = context?.species ? `El cultivo principal es ${context.species}. ` : '';
+    return `Eres Karpos IQ, un asistente agronómico experto para productores latinoamericanos de frutales. ${cropLine}Respondes de forma precisa, práctica y en español. Cuando tienes fuentes técnicas, las citas con números entre corchetes [1], [2], etc. Eres concreto y das recomendaciones accionables basadas en evidencia. No inventas datos ni protocolos que no existan.`;
+  }
+
+  private buildUserMessage(question: string, citations: Citation[]): string {
+    if (citations.length === 0) return question;
+
+    const sources = citations
+      .map((c, i) => `[${i + 1}] ${c.title}:\n${c.snippet}`)
+      .join('\n\n');
+
+    return `Pregunta del productor: ${question}\n\nFuentes técnicas disponibles:\n${sources}\n\nResponde usando las fuentes cuando corresponda.`;
+  }
+
+  private stubAnswer(question: string, citations: Citation[], context: AskDto['context']): LlmResult {
+    const head = context?.species ? `Contexto: cultivo ${context.species}.` : 'Contexto agronómico general.';
+    const refs = citations.map((c, i) => `[${i + 1}] ${c.title} — ${c.snippet}`).join('\n');
+    return {
+      content: `${head}\n\nPregunta: ${question}\n\nFuentes encontradas:\n${refs || '(sin fuentes en el corpus)'}\n\nPara respuestas con IA, configura ANTHROPIC_API_KEY en el servidor.`,
+      citations,
+      tokensIn: 0,
+      tokensOut: 0,
+      model: 'stub',
+    };
   }
 }
