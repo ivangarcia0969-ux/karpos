@@ -55,9 +55,10 @@ else
   echo "  → ${ENV_FILE} ya existe, no lo sobreescribo."
 fi
 
-echo "[4/6] Construyendo imágenes y arrancando servicios (api/web/ml/postgres/redis/minio)..."
+echo "[4/6] Construyendo imágenes y arrancando servicios (api/web/postgres/redis/minio)..."
+echo "      (ml queda en perfil 'ml' opcional — Karpos IQ va directo a Ollama del host)"
 cd "${KARPOS_DIR}/infra/vps"
-docker compose --env-file "${ENV_FILE}" -f docker-compose.prod.yml build
+docker compose --env-file "${ENV_FILE}" -f docker-compose.prod.yml build api web
 docker compose --env-file "${ENV_FILE}" -f docker-compose.prod.yml up -d postgres redis minio minio-init
 
 echo "[5/6] Aplicando migraciones y seeds (perfil 'once')..."
@@ -68,7 +69,7 @@ docker compose --env-file "${ENV_FILE}" -f docker-compose.prod.yml --profile onc
   echo "Seed falló (no fatal — los seeds son idempotentes)";
 }
 
-docker compose --env-file "${ENV_FILE}" -f docker-compose.prod.yml up -d api web ml
+docker compose --env-file "${ENV_FILE}" -f docker-compose.prod.yml up -d api web
 
 echo "[6/6] Configurando Caddy..."
 cp "${KARPOS_DIR}/infra/vps/Caddyfile.karpos" "${CADDY_INCLUDE}"

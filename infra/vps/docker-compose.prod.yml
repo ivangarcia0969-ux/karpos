@@ -126,6 +126,7 @@ services:
       dockerfile: apps/ml/Dockerfile
     container_name: karpos-ml
     restart: unless-stopped
+    profiles: ["ml"]      # opcional: activar con --profile ml. Karpos IQ va directo a Ollama.
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
