@@ -1,5 +1,5 @@
-import esCO from './locales/es-CO.json' with { type: 'json' };
-import enUS from './locales/en-US.json' with { type: 'json' };
+import esCO from './locales/es-CO.json';
+import enUS from './locales/en-US.json';
 
 export const SUPPORTED_LOCALES = ['es-CO', 'es-MX', 'es-ES', 'es-AR', 'es-CL', 'en-US', 'pt-BR'] as const;
 export type Locale = (typeof SUPPORTED_LOCALES)[number];

@@ -15,6 +15,8 @@ WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@9.10.0 --activate
 COPY --from=deps /app /app
 COPY . .
+ENV NODE_OPTIONS=--max-old-space-size=6144
+ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm --filter @karpos/web build
 
 FROM node:20.10-alpine AS runtime

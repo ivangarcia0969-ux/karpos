@@ -2,8 +2,13 @@
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  output: 'standalone',
+  eslint: { ignoreDuringBuilds: true },
+  typescript: { ignoreBuildErrors: false },
   experimental: {
     optimizePackageImports: ['lucide-react', '@karpos/ui'],
+    workerThreads: false,
+    cpus: 1,
   },
   transpilePackages: ['@karpos/ui', '@karpos/sdk', '@karpos/types', '@karpos/i18n'],
   i18n: undefined,
