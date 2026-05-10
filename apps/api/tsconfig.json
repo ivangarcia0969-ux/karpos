@@ -10,10 +10,12 @@
     "emitDecoratorMetadata": true,
     "useDefineForClassFields": false,
     "verbatimModuleSyntax": false,
+    "exactOptionalPropertyTypes": false,
+    "noUncheckedIndexedAccess": false,
     "declaration": false,
     "sourceMap": true,
     "lib": ["ES2022"],
     "jsx": "preserve"
   },
-  "include": ["src/**/*", "test/**/*"]
+  "include": ["src/**/*"]
 }

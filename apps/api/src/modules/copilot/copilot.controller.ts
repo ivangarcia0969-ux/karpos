@@ -4,7 +4,8 @@ import { ZodValidationPipe } from '../../common/zod-validation.pipe.js';
 import { Permissions } from '../../iam/decorators/permissions.decorator.js';
 import { CurrentPrincipal } from '../../iam/decorators/current-principal.decorator.js';
 import type { Principal } from '../../iam/auth.service.js';
-import { AskDto, AskSchema, CopilotService } from './copilot.service.js';
+import { AskSchema, CopilotService } from './copilot.service.js';
+import type { AskDto } from './copilot.service.js';
 
 @ApiTags('karpos-iq')
 @ApiBearerAuth()

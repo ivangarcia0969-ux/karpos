@@ -4,13 +4,8 @@ import { ZodValidationPipe } from '../../common/zod-validation.pipe.js';
 import { Permissions } from '../../iam/decorators/permissions.decorator.js';
 import { CurrentPrincipal } from '../../iam/decorators/current-principal.decorator.js';
 import type { Principal } from '../../iam/auth.service.js';
-import {
-  FieldLogService,
-  LogOperationDto,
-  LogOperationSchema,
-  ListOperationsQuery,
-  ListOperationsQuerySchema,
-} from './field-log.service.js';
+import { FieldLogService, LogOperationSchema, ListOperationsQuerySchema } from './field-log.service.js';
+import type { LogOperationDto, ListOperationsQuery } from './field-log.service.js';
 
 @ApiTags('bitacora-verde')
 @ApiBearerAuth()

@@ -67,3 +67,10 @@ pnpm-debug.log*
 # Misc
 tmp/
 temp/
+
+# Claude Code local state (per-machine, never committed)
+.claude/
+
+# Compiled test artifacts
+apps/api/test/*.js
+apps/api/test/*.js.map

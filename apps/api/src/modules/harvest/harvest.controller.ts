@@ -5,13 +5,15 @@ import { Permissions } from '../../iam/decorators/permissions.decorator.js';
 import { CurrentPrincipal } from '../../iam/decorators/current-principal.decorator.js';
 import type { Principal } from '../../iam/auth.service.js';
 import {
-  CreateHarvestPlanDto,
   CreateHarvestPlanSchema,
   HarvestService,
-  RecordHarvestLotDto,
   RecordHarvestLotSchema,
-  RecordTicketDto,
   RecordTicketSchema,
+} from './harvest.service.js';
+import type {
+  CreateHarvestPlanDto,
+  RecordHarvestLotDto,
+  RecordTicketDto,
 } from './harvest.service.js';
 
 @ApiTags('cosecha360')

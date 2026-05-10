@@ -28,6 +28,9 @@ const Schema = z.object({
   ML_SERVICE_URL: z.string().url().default('http://localhost:8000'),
   ML_API_KEY: z.string().optional(),
 
+  OLLAMA_URL: z.string().url().optional(),
+  OLLAMA_MODEL: z.string().default('llama3.1'),
+
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
   WOMPI_PRIVATE_KEY: z.string().optional(),

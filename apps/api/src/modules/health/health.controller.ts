@@ -4,13 +4,8 @@ import { ZodValidationPipe } from '../../common/zod-validation.pipe.js';
 import { Permissions } from '../../iam/decorators/permissions.decorator.js';
 import { CurrentPrincipal } from '../../iam/decorators/current-principal.decorator.js';
 import type { Principal } from '../../iam/auth.service.js';
-import {
-  HealthService,
-  RecordScoutingDto,
-  RecordScoutingSchema,
-  RecordSprayDto,
-  RecordSpraySchema,
-} from './health.service.js';
+import { HealthService, RecordScoutingSchema, RecordSpraySchema } from './health.service.js';
+import type { RecordScoutingDto, RecordSprayDto } from './health.service.js';
 
 @ApiTags('sanidad-plus')
 @ApiBearerAuth()

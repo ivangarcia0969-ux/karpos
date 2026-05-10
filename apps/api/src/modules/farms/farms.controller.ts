@@ -5,14 +5,8 @@ import { Permissions } from '../../iam/decorators/permissions.decorator.js';
 import { CurrentPrincipal } from '../../iam/decorators/current-principal.decorator.js';
 import type { Principal } from '../../iam/auth.service.js';
 import { FarmsService } from './farms.service.js';
-import {
-  CreateFarmDto,
-  CreateFarmSchema,
-  ListFarmsQuery,
-  ListFarmsQuerySchema,
-  UpdateFarmDto,
-  UpdateFarmSchema,
-} from './farms.dto.js';
+import { CreateFarmSchema, ListFarmsQuerySchema, UpdateFarmSchema } from './farms.dto.js';
+import type { CreateFarmDto, ListFarmsQuery, UpdateFarmDto } from './farms.dto.js';
 
 @ApiTags('predios')
 @ApiBearerAuth()

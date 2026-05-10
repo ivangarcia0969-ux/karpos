@@ -134,10 +134,16 @@ export class CopilotService {
     context: AskDto['context'],
   ): Promise<{ content: string; citations: unknown; tokensIn: number; tokensOut: number; model: string }> {
     const env = loadEnv();
+
+    if (env.OLLAMA_URL) {
+      const ollama = await this.callOllama(env.OLLAMA_URL, env.OLLAMA_MODEL, question, citations, context);
+      if (ollama) return { ...ollama, citations };
+    }
+
     if (!env.ANTHROPIC_API_KEY && !env.OPENAI_API_KEY) {
       return {
         content:
-          'El asistente Karpos IQ no está configurado en este entorno. Configura ANTHROPIC_API_KEY u OPENAI_API_KEY para activar respuestas. Pregunta: ' +
+          'El asistente Karpos IQ no está configurado en este entorno. Configura OLLAMA_URL, ANTHROPIC_API_KEY u OPENAI_API_KEY para activar respuestas. Pregunta: ' +
           question,
         citations,
         tokensIn: 0,
@@ -168,5 +174,56 @@ export class CopilotService {
       .map((c, i) => `[${i + 1}] ${c.title} — ${c.snippet}`)
       .join('\n');
     return `${head}\n\nPregunta: ${question}\n\nFuentes encontradas:\n${refs || '(sin fuentes en el corpus)'}\n\nResumen: la respuesta detallada se compone con LLM en producción.`;
+  }
+
+  private async callOllama(
+    baseUrl: string,
+    model: string,
+    question: string,
+    citations: Array<{ documentId: string; title: string; snippet: string; score: number }>,
+    context: AskDto['context'],
+  ): Promise<{ content: string; tokensIn: number; tokensOut: number; model: string } | null> {
+    const system =
+      'Eres Karpos IQ, copiloto agronómico. Respondes en español, con tono práctico, citando las fuentes provistas con [n]. ' +
+      'Si la pregunta requiere recomendar productos químicos, sugiere y explica; nunca prescribas dosis sin que el agrónomo confirme. ' +
+      'Si no hay datos suficientes en el contexto, dilo explícitamente.';
+    const sources = citations.length
+      ? citations.map((c, i) => `[${i + 1}] ${c.title}\n${c.snippet}`).join('\n\n')
+      : '(sin fuentes recuperadas)';
+    const ctx = context ? `Contexto del lote: ${JSON.stringify(context)}` : '';
+    const prompt = `${ctx}\n\nFuentes:\n${sources}\n\nPregunta del usuario: ${question}\n\nResponde citando con [n].`;
+
+    try {
+      const ctrl = new AbortController();
+      const timeout = setTimeout(() => ctrl.abort(), 30_000);
+      const res = await fetch(`${baseUrl.replace(/\/$/, '')}/api/generate`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          model,
+          system,
+          prompt,
+          stream: false,
+          options: { temperature: 0.2, num_ctx: 8192 },
+        }),
+        signal: ctrl.signal,
+      });
+      clearTimeout(timeout);
+      if (!res.ok) return null;
+      const data = (await res.json()) as {
+        response?: string;
+        prompt_eval_count?: number;
+        eval_count?: number;
+      };
+      if (!data.response) return null;
+      return {
+        content: data.response.trim(),
+        tokensIn: data.prompt_eval_count ?? 0,
+        tokensOut: data.eval_count ?? 0,
+        model: `ollama/${model}`,
+      };
+    } catch {
+      return null;
+    }
   }
 }

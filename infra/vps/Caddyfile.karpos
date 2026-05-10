@@ -1,0 +1,22 @@
+cultivarapp.karpos.surcoapp.tech {
+    encode zstd gzip
+
+    # Karpos REST API + GraphQL (Nest globalPrefix=v1)
+    @api path /v1/* /health /ready /docs /docs/* /webhooks/*
+    handle @api {
+        reverse_proxy 127.0.0.1:4100
+    }
+
+    # Todo lo demás → Next.js (landing, /console, /portal/trazabilidad, etc.)
+    handle {
+        reverse_proxy 127.0.0.1:3100
+    }
+
+    log {
+        output file /var/log/caddy/karpos.log {
+            roll_size 10mb
+            roll_keep 5
+        }
+        format json
+    }
+}

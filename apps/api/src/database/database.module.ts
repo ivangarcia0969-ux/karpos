@@ -26,7 +26,7 @@ export const PG_CLIENT = Symbol('PG_CLIENT');
     {
       provide: DRIZZLE,
       inject: [PG_CLIENT],
-      useFactory: (client: ReturnType<typeof postgres>) => drizzle(client, { schema, casing: 'snake_case' }),
+      useFactory: (client: ReturnType<typeof postgres>) => drizzle(client, { schema }),
     },
   ],
   exports: [DRIZZLE, PG_CLIENT],

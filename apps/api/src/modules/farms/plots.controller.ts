@@ -4,7 +4,8 @@ import { ZodValidationPipe } from '../../common/zod-validation.pipe.js';
 import { Permissions } from '../../iam/decorators/permissions.decorator.js';
 import { CurrentPrincipal } from '../../iam/decorators/current-principal.decorator.js';
 import type { Principal } from '../../iam/auth.service.js';
-import { PlotsService, CreatePlotDto, CreatePlotSchema } from './plots.service.js';
+import { PlotsService, CreatePlotSchema } from './plots.service.js';
+import type { CreatePlotDto } from './plots.service.js';
 
 @ApiTags('predios')
 @ApiBearerAuth()

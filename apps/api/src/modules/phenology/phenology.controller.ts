@@ -4,13 +4,8 @@ import { ZodValidationPipe } from '../../common/zod-validation.pipe.js';
 import { Permissions } from '../../iam/decorators/permissions.decorator.js';
 import { CurrentPrincipal } from '../../iam/decorators/current-principal.decorator.js';
 import type { Principal } from '../../iam/auth.service.js';
-import {
-  GddQuery,
-  GddQuerySchema,
-  PhenologyService,
-  RecordPhenologyEventDto,
-  RecordPhenologyEventSchema,
-} from './phenology.service.js';
+import { GddQuerySchema, PhenologyService, RecordPhenologyEventSchema } from './phenology.service.js';
+import type { GddQuery, RecordPhenologyEventDto } from './phenology.service.js';
 
 @ApiTags('fenoflow')
 @ApiBearerAuth()
