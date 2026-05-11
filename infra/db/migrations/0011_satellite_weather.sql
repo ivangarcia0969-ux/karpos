@@ -51,6 +51,7 @@ CREATE TABLE karpos.weather_observations (
   PRIMARY KEY (station_id, observed_at)
 );
 SELECT create_hypertable('karpos.weather_observations', 'observed_at', chunk_time_interval => INTERVAL '7 days', if_not_exists => TRUE);
+ALTER TABLE karpos.weather_observations SET (timescaledb.compress, timescaledb.compress_segmentby = 'station_id', timescaledb.compress_orderby = 'observed_at DESC');
 SELECT add_compression_policy('karpos.weather_observations', INTERVAL '30 days', if_not_exists => TRUE);
 
 CREATE TABLE karpos.weather_forecasts (
