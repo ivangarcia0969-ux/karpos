@@ -6,7 +6,7 @@ COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY apps/api/package.json apps/api/
 COPY packages/types/package.json packages/types/
 COPY packages/sdk/package.json packages/sdk/
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --shamefully-hoist
 
 FROM node:20.10-alpine AS build
 WORKDIR /app
