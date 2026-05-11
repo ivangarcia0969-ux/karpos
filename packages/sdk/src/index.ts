@@ -32,14 +32,15 @@ export class KarposClient {
   private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
     const token = await this.opts.getToken();
     const fetchImpl = this.opts.fetch ?? fetch;
-    const res = await fetchImpl(`${this.opts.baseUrl}${path}`, {
+    const init: RequestInit = {
       method,
       headers: {
         'content-type': 'application/json',
         ...(token ? { authorization: `Bearer ${token}` } : {}),
       },
-      body: body ? JSON.stringify(body) : undefined,
-    });
+    };
+    if (body !== undefined) init.body = JSON.stringify(body);
+    const res = await fetchImpl(`${this.opts.baseUrl}${path}`, init);
     const text = await res.text();
     const payload = text ? JSON.parse(text) : null;
     if (!res.ok) throw new KarposApiError(res.status, payload);

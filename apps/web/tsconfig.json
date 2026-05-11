@@ -8,16 +8,41 @@
     "strict": true,
     "incremental": true,
     "noEmit": true,
-    "plugins": [{ "name": "next" }],
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@karpos/types": ["../../packages/types/src/index.ts"],
-      "@karpos/sdk": ["../../packages/sdk/src/index.ts"],
-      "@karpos/ui": ["../../packages/ui/src/index.ts"],
-      "@karpos/ui/globals.css": ["../../packages/ui/src/globals.css"],
-      "@karpos/i18n": ["../../packages/i18n/src/index.ts"]
-    }
+      "@/*": [
+        "./src/*"
+      ],
+      "@karpos/types": [
+        "../../packages/types/src/index.ts"
+      ],
+      "@karpos/sdk": [
+        "../../packages/sdk/src/index.ts"
+      ],
+      "@karpos/ui": [
+        "../../packages/ui/src/index.ts"
+      ],
+      "@karpos/ui/globals.css": [
+        "../../packages/ui/src/globals.css"
+      ],
+      "@karpos/i18n": [
+        "../../packages/i18n/src/index.ts"
+      ]
+    },
+    "allowJs": true
   },
-  "include": ["next-env.d.ts", "src/**/*", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", ".next"]
+  "include": [
+    "next-env.d.ts",
+    "src/**/*",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    ".next"
+  ]
 }

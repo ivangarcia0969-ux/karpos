@@ -6,13 +6,22 @@ const nextConfig = {
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: false },
   experimental: {
-    optimizePackageImports: ['lucide-react', '@karpos/ui'],
+    optimizePackageImports: ['lucide-react'],
     workerThreads: false,
     cpus: 1,
   },
   transpilePackages: ['@karpos/ui', '@karpos/sdk', '@karpos/types', '@karpos/i18n'],
   i18n: undefined,
   images: { remotePatterns: [{ protocol: 'https', hostname: '**' }] },
+  webpack: (config) => {
+    // TS source in workspace packages uses ESM-style `.js` import suffixes that
+    // webpack cannot resolve out of the box. Map them to the .ts/.tsx files.
+    config.resolve.extensionAlias = {
+      '.js': ['.ts', '.tsx', '.js', '.jsx'],
+      '.mjs': ['.mts', '.mjs'],
+    };
+    return config;
+  },
   async headers() {
     return [
       {
