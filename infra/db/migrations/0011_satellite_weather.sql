@@ -55,6 +55,7 @@ ALTER TABLE karpos.weather_observations SET (timescaledb.compress, timescaledb.c
 SELECT add_compression_policy('karpos.weather_observations', INTERVAL '30 days', if_not_exists => TRUE);
 
 CREATE TABLE karpos.weather_forecasts (
+  id              uuid PRIMARY KEY DEFAULT uuid_v7(),
   station_id      uuid,
   org_id          uuid,
   plot_id         uuid,
@@ -66,9 +67,10 @@ CREATE TABLE karpos.weather_forecasts (
   rain_mm         numeric(7,2),
   wind_speed_ms   numeric(5,2),
   frost_risk_pct  numeric(5,2),
-  payload         jsonb,
-  PRIMARY KEY (forecast_for, generated_at, source, COALESCE(station_id, plot_id))
+  payload         jsonb
 );
+CREATE UNIQUE INDEX weather_forecasts_uniq
+  ON karpos.weather_forecasts (forecast_for, generated_at, source, COALESCE(station_id, plot_id));
 
 CREATE TABLE karpos.alerts (
   id              uuid PRIMARY KEY DEFAULT uuid_v7(),
