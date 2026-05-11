@@ -1,11 +1,19 @@
 -- 0015_rls_policies.sql
 -- Activate Row-Level Security on all tenant tables.
 
+-- organizations is the tenant root: its own id IS the tenant id.
+ALTER TABLE karpos.organizations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE karpos.organizations FORCE ROW LEVEL SECURITY;
+CREATE POLICY organizations_tenant_isolation ON karpos.organizations
+  USING (id = current_org())
+  WITH CHECK (id = current_org());
+
 DO $$
 DECLARE
   tbl text;
+  has_org_id boolean;
   tenant_tables text[] := ARRAY[
-    'organizations','subscriptions','invoices','usage_meters',
+    'subscriptions','invoices','usage_meters',
     'roles','memberships','api_keys',
     'farms','sectors','plots','trees',
     'phenology_profiles','phenology_profile_stages','phenology_events','gdd_daily',
@@ -20,6 +28,16 @@ DECLARE
   ];
 BEGIN
   FOREACH tbl IN ARRAY tenant_tables LOOP
+    SELECT EXISTS (
+      SELECT 1 FROM information_schema.columns
+       WHERE table_schema = 'karpos' AND table_name = tbl AND column_name = 'org_id'
+    ) INTO has_org_id;
+
+    IF NOT has_org_id THEN
+      RAISE NOTICE 'Skipping RLS on karpos.% — column org_id not present', tbl;
+      CONTINUE;
+    END IF;
+
     EXECUTE format('ALTER TABLE karpos.%I ENABLE ROW LEVEL SECURITY', tbl);
     EXECUTE format('ALTER TABLE karpos.%I FORCE ROW LEVEL SECURITY', tbl);
 
