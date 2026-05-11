@@ -12,6 +12,7 @@ DO $$
 DECLARE
   tbl text;
   has_org_id boolean;
+  is_compressed_ht boolean;
   tenant_tables text[] := ARRAY[
     'subscriptions','invoices','usage_meters',
     'roles','memberships','api_keys',
@@ -35,6 +36,24 @@ BEGIN
 
     IF NOT has_org_id THEN
       RAISE NOTICE 'Skipping RLS on karpos.% — column org_id not present', tbl;
+      CONTINUE;
+    END IF;
+
+    -- TimescaleDB blocks ALTER TABLE on hypertables with columnstore enabled;
+    -- those hypertables enable their own RLS in the migration that creates them.
+    SELECT EXISTS (
+      SELECT 1
+        FROM timescaledb_information.hypertables h
+        LEFT JOIN timescaledb_information.compression_settings cs
+               ON cs.hypertable_schema = h.hypertable_schema
+              AND cs.hypertable_name = h.hypertable_name
+       WHERE h.hypertable_schema = 'karpos'
+         AND h.hypertable_name = tbl
+         AND cs.hypertable_name IS NOT NULL
+    ) INTO is_compressed_ht;
+
+    IF is_compressed_ht THEN
+      RAISE NOTICE 'Skipping RLS on karpos.% — compressed hypertable (RLS set inline at creation)', tbl;
       CONTINUE;
     END IF;
 

@@ -91,6 +91,12 @@ CREATE TABLE karpos.sensor_readings (
 );
 SELECT create_hypertable('karpos.sensor_readings', 'observed_at', chunk_time_interval => INTERVAL '7 days', if_not_exists => TRUE);
 CREATE INDEX ON karpos.sensor_readings(org_id, observed_at DESC);
+-- RLS must be enabled BEFORE columnstore; TimescaleDB blocks ALTER TABLE on compressed hypertables.
+ALTER TABLE karpos.sensor_readings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE karpos.sensor_readings FORCE ROW LEVEL SECURITY;
+CREATE POLICY sensor_readings_tenant_isolation ON karpos.sensor_readings
+  USING (org_id IS NULL OR org_id = current_org())
+  WITH CHECK (org_id IS NULL OR org_id = current_org());
 ALTER TABLE karpos.sensor_readings SET (timescaledb.compress, timescaledb.compress_segmentby = 'sensor_id', timescaledb.compress_orderby = 'observed_at DESC');
 SELECT add_compression_policy('karpos.sensor_readings', INTERVAL '30 days', if_not_exists => TRUE);
 
