@@ -1,22 +1,23 @@
 name: karpos
 
-# Production-ish compose for the Hostinger VPS.
-# - All services bind to 127.0.0.1 only; the system Caddy at /usr/bin/caddy
-#   is the public entrypoint via /etc/caddy/Caddyfile.
-# - Postgres is internal-only (no port mapping). Supabase on 5432 is untouched.
-# - host.docker.internal is mapped so api/ml can reach Ollama on the host (11434).
+# Karpos baseline DB only.
+# - Postgres 16 vanilla (no Timescale, no PostGIS, no pgvector).
+# - Bound to 127.0.0.1:5433 so it does not collide with Supabase on 5432.
+# - migrate/seed are one-shot services activated via --profile once.
 
 services:
   postgres:
-    image: timescale/timescaledb-ha:pg16
+    image: postgres:16-alpine
     container_name: karpos-postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-karpos}
       POSTGRES_USER: ${POSTGRES_USER:-karpos}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "127.0.0.1:5433:5432"
     volumes:
-      - karpos-pg:/home/postgres/pgdata/data
+      - karpos-pg:/var/lib/postgresql/data
     networks: [karpos]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-karpos} -d ${POSTGRES_DB:-karpos}"]
@@ -24,120 +25,8 @@ services:
       timeout: 5s
       retries: 12
 
-  redis:
-    image: redis:7-alpine
-    container_name: karpos-redis
-    restart: unless-stopped
-    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD}"]
-    volumes:
-      - karpos-redis:/data
-    networks: [karpos]
-
-  minio:
-    image: minio/minio:latest
-    container_name: karpos-minio
-    restart: unless-stopped
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: ${S3_ACCESS_KEY}
-      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY}
-    volumes:
-      - karpos-minio:/data
-    networks: [karpos]
-
-  minio-init:
-    image: minio/mc:latest
-    depends_on: [minio]
-    entrypoint: >
-      /bin/sh -c "
-      sleep 5;
-      mc alias set local http://minio:9000 ${S3_ACCESS_KEY} ${S3_SECRET_KEY};
-      mc mb -p local/karpos-files;
-      mc mb -p local/karpos-thumbs;
-      mc mb -p local/karpos-exports;
-      exit 0;
-      "
-    networks: [karpos]
-
-  api:
-    image: karpos-api:${KARPOS_TAG:-latest}
-    build:
-      context: ../..
-      dockerfile: apps/api/Dockerfile
-    container_name: karpos-api
-    restart: unless-stopped
-    depends_on:
-      postgres: { condition: service_healthy }
-      redis:    { condition: service_started }
-      minio:    { condition: service_started }
-    ports:
-      - "127.0.0.1:4100:4000"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    environment:
-      NODE_ENV: production
-      LOG_LEVEL: info
-      API_PORT: "4000"
-      API_BASE_URL: https://${PUBLIC_HOST}
-      WEB_BASE_URL: https://${PUBLIC_HOST}
-      DATABASE_URL: postgres://${POSTGRES_USER:-karpos}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-karpos}
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
-      NATS_URL: nats://nats:4222
-      S3_ENDPOINT: http://minio:9000
-      S3_REGION: us-east-1
-      S3_BUCKET_FILES: karpos-files
-      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
-      S3_SECRET_KEY: ${S3_SECRET_KEY}
-      S3_FORCE_PATH_STYLE: "true"
-      OIDC_ISSUER: ${OIDC_ISSUER}
-      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID}
-      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET}
-      JWT_AUDIENCE: karpos-api
-      JWT_ISSUER: ${OIDC_ISSUER}
-      ML_SERVICE_URL: http://ml:8000
-      ML_API_KEY: ${ML_API_KEY:-}
-      OLLAMA_URL: http://host.docker.internal:11434
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.1}
-      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
-      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
-      SENTRY_DSN: ${SENTRY_DSN:-}
-    networks: [karpos]
-
-  web:
-    image: karpos-web:${KARPOS_TAG:-latest}
-    build:
-      context: ../..
-      dockerfile: apps/web/Dockerfile
-    container_name: karpos-web
-    restart: unless-stopped
-    depends_on: [api]
-    ports:
-      - "127.0.0.1:3100:3000"
-    environment:
-      NODE_ENV: production
-      NEXT_PUBLIC_API_BASE_URL: https://${PUBLIC_HOST}
-      NEXT_PUBLIC_SITE_URL: https://${PUBLIC_HOST}
-    networks: [karpos]
-
-  ml:
-    image: karpos-ml:${KARPOS_TAG:-latest}
-    build:
-      context: ../..
-      dockerfile: apps/ml/Dockerfile
-    container_name: karpos-ml
-    restart: unless-stopped
-    profiles: ["ml"]      # opcional: activar con --profile ml. Karpos IQ va directo a Ollama.
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    environment:
-      KARPOS_ML_API_KEY: ${ML_API_KEY:-}
-      EMBEDDING_MODEL: intfloat/multilingual-e5-large
-    ports:
-      - "127.0.0.1:8100:8000"
-    networks: [karpos]
-
   migrate:
-    image: karpos-api:${KARPOS_TAG:-latest}
+    image: node:20-alpine
     container_name: karpos-migrate
     profiles: ["once"]
     depends_on:
@@ -145,14 +34,14 @@ services:
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-karpos}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-karpos}
     working_dir: /app
-    entrypoint: ["node", "/app/scripts/migrate.mjs"]
+    entrypoint: ["sh", "-c", "npm install --silent postgres@3.4.4 && node /app/scripts/migrate.mjs"]
     volumes:
       - ../../scripts:/app/scripts:ro
       - ../../infra/db:/app/infra/db:ro
     networks: [karpos]
 
   seed:
-    image: karpos-api:${KARPOS_TAG:-latest}
+    image: node:20-alpine
     container_name: karpos-seed
     profiles: ["once"]
     depends_on:
@@ -160,7 +49,7 @@ services:
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-karpos}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-karpos}
     working_dir: /app
-    entrypoint: ["node", "/app/scripts/seed.mjs"]
+    entrypoint: ["sh", "-c", "npm install --silent postgres@3.4.4 && node /app/scripts/seed.mjs"]
     volumes:
       - ../../scripts:/app/scripts:ro
       - ../../infra/db:/app/infra/db:ro
@@ -168,8 +57,6 @@ services:
 
 volumes:
   karpos-pg:
-  karpos-redis:
-  karpos-minio:
 
 networks:
   karpos:
