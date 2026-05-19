@@ -1,9 +1,9 @@
 name: karpos
 
-# Karpos baseline DB only.
-# - Postgres 16 vanilla (no Timescale, no PostGIS, no pgvector).
-# - Bound to 127.0.0.1:5433 so it does not collide with Supabase on 5432.
-# - migrate/seed are one-shot services activated via --profile once.
+# Karpos prod stack — Postgres + API + Web.
+# - Postgres bound to 127.0.0.1:5433 (Supabase keeps 5432).
+# - API on 127.0.0.1:4100, Web on 127.0.0.1:3100. System Caddy proxies them.
+# - migrate/seed are one-shot under --profile once.
 
 services:
   postgres:
@@ -53,6 +53,49 @@ services:
     volumes:
       - ../../scripts:/app/scripts:ro
       - ../../infra/db:/app/infra/db:ro
+    networks: [karpos]
+
+  api:
+    image: karpos-api:${KARPOS_TAG:-latest}
+    build:
+      context: ../..
+      dockerfile: apps/api/Dockerfile
+    container_name: karpos-api
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+    ports:
+      - "127.0.0.1:4100:4000"
+    environment:
+      NODE_ENV: production
+      LOG_LEVEL: info
+      API_PORT: "4000"
+      API_BASE_URL: https://${PUBLIC_HOST}
+      WEB_BASE_URL: https://${PUBLIC_HOST}
+      DATABASE_URL: postgres://${POSTGRES_USER:-karpos}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-karpos}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      COOKIE_NAME: ${COOKIE_NAME:-karpos.session}
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN}
+      COOKIE_SECURE: "true"
+    networks: [karpos]
+
+  web:
+    image: karpos-web:${KARPOS_TAG:-latest}
+    build:
+      context: ../..
+      dockerfile: apps/web/Dockerfile
+    container_name: karpos-web
+    restart: unless-stopped
+    depends_on: [api]
+    ports:
+      - "127.0.0.1:3100:3000"
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_BASE_URL: https://${PUBLIC_HOST}
+      NEXT_PUBLIC_SITE_URL: https://${PUBLIC_HOST}
+      KARPOS_COOKIE_NAME: ${COOKIE_NAME:-karpos.session}
+      JWT_SECRET: ${JWT_SECRET}
     networks: [karpos]
 
 volumes:

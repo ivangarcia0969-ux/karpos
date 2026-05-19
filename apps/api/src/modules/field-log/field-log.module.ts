@@ -1,10 +1,9 @@
 import { Module } from '@nestjs/common';
-import { FieldLogController } from './field-log.controller.js';
 import { FieldLogService } from './field-log.service.js';
+import { FieldLogController } from './field-log.controller.js';
 
 @Module({
-  controllers: [FieldLogController],
   providers: [FieldLogService],
-  exports: [FieldLogService],
+  controllers: [FieldLogController],
 })
 export class FieldLogModule {}

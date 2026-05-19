@@ -1,194 +1,148 @@
-import { Inject, Injectable, BadRequestException } from '@nestjs/common';
-import { desc, eq, sql } from 'drizzle-orm';
+import { Inject, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { and, desc, eq, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 import { DRIZZLE, type Database } from '../../database/database.module.js';
-import { TenancyService } from '../../tenancy/tenancy.service.js';
-import { pestScoutings, sprayRecords, sprayRecordItems } from '../../database/schema/health.js';
+import { pestScoutings, sprayRecords } from '../../database/schema/health.js';
 import type { Principal } from '../../iam/auth.service.js';
 
 export const RecordScoutingSchema = z.object({
   plotId: z.string().uuid(),
-  observedAt: z.string().datetime(),
-  pestTaxonId: z.string().uuid(),
-  severityScale: z.string().min(1),
-  severityValue: z.number().min(0).optional(),
+  observedOn: z.string().date(),
+  target: z.string().min(1).max(120),
+  category: z.enum(['pest', 'disease', 'weed', 'beneficial', 'abiotic']),
+  severity: z.enum(['none', 'low', 'moderate', 'high', 'severe']),
   incidencePct: z.number().min(0).max(100).optional(),
-  sampleSize: z.number().int().positive().optional(),
-  geom: z.object({ lat: z.number(), lng: z.number() }).optional(),
+  sampleSize: z.number().int().nonnegative().optional(),
+  stageBbch: z.string().max(6).optional(),
   notes: z.string().max(2000).optional(),
-  attachments: z.array(z.unknown()).default([]),
-  source: z.enum(['manual', 'vision', 'trap']).default('manual'),
+  photos: z.array(z.string()).default([]),
+  metadata: z.record(z.unknown()).default({}),
 });
 export type RecordScoutingDto = z.infer<typeof RecordScoutingSchema>;
 
 export const RecordSpraySchema = z.object({
   plotId: z.string().uuid(),
+  scoutingId: z.string().uuid().optional(),
   appliedAt: z.string().datetime(),
-  finishedAt: z.string().datetime().optional(),
-  applicatorName: z.string().max(120).optional(),
-  applicatorLicense: z.string().max(40).optional(),
+  endedAt: z.string().datetime().optional(),
+  operator: z.string().min(1).max(120),
+  target: z.string().max(120).optional(),
+  productName: z.string().min(1).max(120),
+  activeIngredient: z.string().min(1).max(180),
+  registrationNo: z.string().max(60).optional(),
+  doseAmount: z.number().positive(),
+  doseUnit: z.string().min(1).max(20),
+  waterLPerHa: z.number().positive().optional(),
+  areaHa: z.number().positive(),
+  phiDays: z.number().int().nonnegative(),
+  reiHours: z.number().int().nonnegative().optional(),
   equipment: z.string().max(120).optional(),
-  areaTreatedHa: z.number().positive(),
-  waterLHa: z.number().positive().optional(),
-  weather: z
-    .object({
-      tempC: z.number().optional(),
-      rhPct: z.number().optional(),
-      windMs: z.number().optional(),
-    })
-    .optional(),
-  phBefore: z.number().min(0).max(14).optional(),
+  windKmh: z.number().nonnegative().optional(),
+  tempC: z.number().optional(),
+  rhPct: z.number().min(0).max(100).optional(),
   notes: z.string().max(2000).optional(),
-  items: z
-    .array(
-      z.object({
-        productId: z.string().uuid(),
-        targetTaxonId: z.string().uuid().optional(),
-        doseValue: z.number().positive(),
-        doseUnit: z.string().min(1),
-      }),
-    )
-    .min(1),
+  metadata: z.record(z.unknown()).default({}),
 });
 export type RecordSprayDto = z.infer<typeof RecordSpraySchema>;
 
 @Injectable()
 export class HealthService {
-  constructor(
-    @Inject(DRIZZLE) private readonly db: Database,
-    private readonly tenancy: TenancyService,
-  ) {}
+  constructor(@Inject(DRIZZLE) private readonly db: Database) {}
 
   listScoutings(principal: Principal, plotId: string) {
-    return this.tenancy.withTenant(principal.orgId, principal.userId, async (tx) => {
-      return tx
-        .select()
-        .from(pestScoutings)
-        .where(eq(pestScoutings.plotId, plotId))
-        .orderBy(desc(pestScoutings.observedAt));
-    });
+    return this.db
+      .select()
+      .from(pestScoutings)
+      .where(and(eq(pestScoutings.orgId, principal.orgId), eq(pestScoutings.plotId, plotId)))
+      .orderBy(desc(pestScoutings.observedOn))
+      .limit(500);
   }
 
-  recordScouting(principal: Principal, dto: RecordScoutingDto) {
-    return this.tenancy.withTenant(principal.orgId, principal.userId, async (tx) => {
-      const [row] = await tx
-        .insert(pestScoutings)
-        .values({
-          orgId: principal.orgId,
-          plotId: dto.plotId,
-          observedAt: new Date(dto.observedAt),
-          observerId: principal.userId,
-          pestTaxonId: dto.pestTaxonId,
-          severityScale: dto.severityScale,
-          severityValue: dto.severityValue?.toString(),
-          incidencePct: dto.incidencePct?.toString(),
-          sampleSize: dto.sampleSize,
-          geom: dto.geom ? `SRID=4326;POINT(${dto.geom.lng} ${dto.geom.lat})` : null,
-          notes: dto.notes,
-          attachments: dto.attachments,
-          source: dto.source,
-        })
-        .returning();
-      return row;
-    });
+  async recordScouting(principal: Principal, dto: RecordScoutingDto) {
+    const [row] = await this.db
+      .insert(pestScoutings)
+      .values({
+        orgId: principal.orgId,
+        plotId: dto.plotId,
+        observedOn: dto.observedOn,
+        target: dto.target,
+        category: dto.category,
+        severity: dto.severity,
+        incidencePct: dto.incidencePct?.toString(),
+        sampleSize: dto.sampleSize,
+        stageBbch: dto.stageBbch,
+        notes: dto.notes,
+        photos: dto.photos,
+        metadata: dto.metadata,
+        observerId: principal.userId,
+      })
+      .returning();
+    return row;
   }
 
   listSprays(principal: Principal, plotId?: string) {
-    return this.tenancy.withTenant(principal.orgId, principal.userId, async (tx) => {
-      return tx
-        .select()
-        .from(sprayRecords)
-        .where(plotId ? eq(sprayRecords.plotId, plotId) : undefined)
-        .orderBy(desc(sprayRecords.appliedAt))
-        .limit(200);
-    });
+    const conds = [eq(sprayRecords.orgId, principal.orgId), isNull(sprayRecords.voidedAt)];
+    if (plotId) conds.push(eq(sprayRecords.plotId, plotId));
+    return this.db
+      .select()
+      .from(sprayRecords)
+      .where(and(...conds))
+      .orderBy(desc(sprayRecords.appliedAt))
+      .limit(500);
   }
 
-  // Records a spray, automatically computes max PHI/REI from product catalog.
-  recordSpray(principal: Principal, dto: RecordSprayDto) {
-    return this.tenancy.withTenant(principal.orgId, principal.userId, async (tx) => {
-      const productIds = dto.items.map((i) => i.productId);
-      const phiRei = await tx.execute<{ max_phi: number | null; max_rei: number | null }>(sql`
-        SELECT
-          MAX(default_phi_days) AS max_phi,
-          MAX(default_rei_hours) AS max_rei
-        FROM catalog.chemical_products
-        WHERE id = ANY(${productIds}::uuid[])
-      `);
-      const { max_phi, max_rei } = phiRei[0] ?? { max_phi: null, max_rei: null };
-      const appliedAt = new Date(dto.appliedAt);
-      const phiUntil = max_phi
-        ? new Date(appliedAt.getTime() + Number(max_phi) * 86_400_000).toISOString().slice(0, 10)
-        : null;
-      const reiUntil = max_rei ? new Date(appliedAt.getTime() + Number(max_rei) * 3_600_000) : null;
-
-      const [spray] = await tx
-        .insert(sprayRecords)
-        .values({
-          orgId: principal.orgId,
-          plotId: dto.plotId,
-          appliedAt,
-          finishedAt: dto.finishedAt ? new Date(dto.finishedAt) : null,
-          applicatorId: principal.userId,
-          applicatorName: dto.applicatorName,
-          applicatorLicense: dto.applicatorLicense,
-          equipment: dto.equipment,
-          areaTreatedHa: dto.areaTreatedHa.toString(),
-          waterLHa: dto.waterLHa?.toString(),
-          weatherTempC: dto.weather?.tempC?.toString(),
-          weatherRhPct: dto.weather?.rhPct?.toString(),
-          weatherWindMs: dto.weather?.windMs?.toString(),
-          phBefore: dto.phBefore?.toString(),
-          notes: dto.notes,
-          phiUntil,
-          reiUntil,
-          status: 'applied',
-          recordedBy: principal.userId,
-        })
-        .returning();
-
-      await tx.insert(sprayRecordItems).values(
-        dto.items.map((i) => ({
-          sprayRecordId: spray.id,
-          productId: i.productId,
-          targetTaxonId: i.targetTaxonId,
-          doseValue: i.doseValue.toString(),
-          doseUnit: i.doseUnit,
-        })),
-      );
-
-      // Append immutable audit event.
-      await tx.execute(sql`
-        INSERT INTO audit.audit_events
-          (org_id, aggregate_type, aggregate_id, seq, event_type, payload, actor_id, actor_role, occurred_at)
-        VALUES
-          (${principal.orgId}, 'spray_record', ${spray.id}, 1, 'SprayApplied',
-           ${JSON.stringify({ items: dto.items, areaTreatedHa: dto.areaTreatedHa, phiUntil, reiUntil })}::jsonb,
-           ${principal.userId}, ${principal.roles[0] ?? 'unknown'}, ${appliedAt.toISOString()})
-      `);
-
-      return spray;
-    });
+  async recordSpray(principal: Principal, dto: RecordSprayDto) {
+    const [row] = await this.db
+      .insert(sprayRecords)
+      .values({
+        orgId: principal.orgId,
+        plotId: dto.plotId,
+        scoutingId: dto.scoutingId,
+        appliedAt: new Date(dto.appliedAt),
+        endedAt: dto.endedAt ? new Date(dto.endedAt) : undefined,
+        operator: dto.operator,
+        target: dto.target,
+        productName: dto.productName,
+        activeIngredient: dto.activeIngredient,
+        registrationNo: dto.registrationNo,
+        doseAmount: dto.doseAmount.toString(),
+        doseUnit: dto.doseUnit,
+        waterLPerHa: dto.waterLPerHa?.toString(),
+        areaHa: dto.areaHa.toString(),
+        phiDays: dto.phiDays,
+        reiHours: dto.reiHours,
+        equipment: dto.equipment,
+        windKmh: dto.windKmh?.toString(),
+        tempC: dto.tempC?.toString(),
+        rhPct: dto.rhPct?.toString(),
+        notes: dto.notes,
+        metadata: dto.metadata,
+        recordedBy: principal.userId,
+      })
+      .returning();
+    return row;
   }
 
-  voidSpray(principal: Principal, id: string, reason: string) {
-    if (!reason || reason.length < 5) throw new BadRequestException('reason_required');
-    return this.tenancy.withTenant(principal.orgId, principal.userId, async (tx) => {
-      const [spray] = await tx
-        .update(sprayRecords)
-        .set({ status: 'voided', voidedReason: reason })
-        .where(eq(sprayRecords.id, id))
-        .returning();
-
-      await tx.execute(sql`
-        INSERT INTO audit.audit_events
-          (org_id, aggregate_type, aggregate_id, seq, event_type, payload, actor_id, occurred_at)
-        VALUES
-          (${principal.orgId}, 'spray_record', ${id},
-           (SELECT COALESCE(MAX(seq),0)+1 FROM audit.audit_events WHERE aggregate_type='spray_record' AND aggregate_id=${id}),
-           'SprayVoided', ${JSON.stringify({ reason })}::jsonb, ${principal.userId}, now())
-      `);
-      return spray;
-    });
+  async voidSpray(principal: Principal, id: string, reason: string) {
+    if (!reason || reason.trim().length < 3) {
+      throw new BadRequestException('void_reason_required');
+    }
+    const [row] = await this.db
+      .update(sprayRecords)
+      .set({
+        voidedAt: new Date(),
+        voidedBy: principal.userId,
+        voidReason: reason,
+      })
+      .where(
+        and(
+          eq(sprayRecords.orgId, principal.orgId),
+          eq(sprayRecords.id, id),
+          isNull(sprayRecords.voidedAt),
+        ),
+      )
+      .returning();
+    if (!row) throw new NotFoundException('spray_not_found_or_already_voided');
+    return row;
   }
 }

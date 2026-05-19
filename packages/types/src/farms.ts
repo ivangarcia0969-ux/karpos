@@ -1,8 +1,6 @@
 import { z } from 'zod';
 import { PointSchema } from './core.js';
 
-export const FarmStatusSchema = z.enum(['planning', 'establishing', 'active', 'retired']);
-
 export const FarmSchema = z.object({
   id: z.string().uuid(),
   orgId: z.string().uuid(),
@@ -13,7 +11,9 @@ export const FarmSchema = z.object({
   locality: z.string().nullable().optional(),
   timezone: z.string(),
   elevationM: z.number().int().nullable().optional(),
-  totalAreaHa: z.string().nullable().optional(),
+  totalAreaHa: z.union([z.string(), z.number()]).nullable().optional(),
+  centroid: PointSchema.nullable().optional(),
+  boundary: z.unknown().nullable().optional(),
   contact: z.record(z.unknown()),
   metadata: z.record(z.unknown()),
   createdAt: z.string(),
@@ -25,19 +25,18 @@ export const PlotSchema = z.object({
   id: z.string().uuid(),
   orgId: z.string().uuid(),
   farmId: z.string().uuid(),
-  sectorId: z.string().uuid().nullable().optional(),
   code: z.string(),
   name: z.string(),
-  speciesId: z.string().uuid(),
+  speciesId: z.string().uuid().nullable().optional(),
   varietyId: z.string().uuid().nullable().optional(),
-  rootstockId: z.string().uuid().nullable().optional(),
-  trainingSystemId: z.string().uuid().nullable().optional(),
   plantingDate: z.string().nullable().optional(),
-  spacingRowM: z.string().nullable().optional(),
-  spacingTreeM: z.string().nullable().optional(),
+  spacingRowM: z.union([z.string(), z.number()]).nullable().optional(),
+  spacingTreeM: z.union([z.string(), z.number()]).nullable().optional(),
   treesCount: z.number().int().nullable().optional(),
-  areaHa: z.string().nullable().optional(),
-  status: FarmStatusSchema,
+  areaHa: z.union([z.string(), z.number()]).nullable().optional(),
+  boundary: z.unknown().nullable().optional(),
+  centroid: PointSchema.nullable().optional(),
+  status: z.string(),
   metadata: z.record(z.unknown()),
   createdAt: z.string(),
   updatedAt: z.string(),

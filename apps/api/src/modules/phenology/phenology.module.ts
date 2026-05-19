@@ -1,10 +1,9 @@
 import { Module } from '@nestjs/common';
-import { PhenologyController } from './phenology.controller.js';
 import { PhenologyService } from './phenology.service.js';
+import { PhenologyController } from './phenology.controller.js';
 
 @Module({
-  controllers: [PhenologyController],
   providers: [PhenologyService],
-  exports: [PhenologyService],
+  controllers: [PhenologyController],
 })
 export class PhenologyModule {}

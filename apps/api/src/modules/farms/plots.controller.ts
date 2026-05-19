@@ -1,36 +1,43 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { ZodValidationPipe } from '../../common/zod-validation.pipe.js';
-import { Permissions } from '../../iam/decorators/permissions.decorator.js';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Put, Query } from '@nestjs/common';
+import { CreatePlotSchema, PlotsService, UpdatePlotSchema } from './plots.service.js';
+import type { CreatePlotDto, UpdatePlotDto } from './plots.service.js';
 import { CurrentPrincipal } from '../../iam/decorators/current-principal.decorator.js';
 import type { Principal } from '../../iam/auth.service.js';
-import { PlotsService, CreatePlotSchema } from './plots.service.js';
-import type { CreatePlotDto } from './plots.service.js';
+import { ZodValidationPipe } from '../../common/zod-validation.pipe.js';
 
-@ApiTags('predios')
-@ApiBearerAuth()
-@Controller('plots')
+@Controller('/v1/plots')
 export class PlotsController {
-  constructor(private readonly service: PlotsService) {}
+  constructor(private readonly svc: PlotsService) {}
 
   @Get()
-  @Permissions('farms:read')
   list(@CurrentPrincipal() principal: Principal, @Query('farmId') farmId?: string) {
-    return this.service.list(principal, farmId);
+    return this.svc.list(principal, farmId);
   }
 
   @Get(':id')
-  @Permissions('farms:read')
-  byId(@CurrentPrincipal() principal: Principal, @Param('id') id: string) {
-    return this.service.byId(principal, id);
+  get(@CurrentPrincipal() principal: Principal, @Param('id', new ParseUUIDPipe()) id: string) {
+    return this.svc.get(principal, id);
   }
 
   @Post()
-  @Permissions('farms:write')
   create(
     @CurrentPrincipal() principal: Principal,
-    @Body(new ZodValidationPipe(CreatePlotSchema)) dto: CreatePlotDto,
+    @Body(new ZodValidationPipe(CreatePlotSchema)) body: CreatePlotDto,
   ) {
-    return this.service.create(principal, dto);
+    return this.svc.create(principal, body);
+  }
+
+  @Put(':id')
+  update(
+    @CurrentPrincipal() principal: Principal,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body(new ZodValidationPipe(UpdatePlotSchema)) body: UpdatePlotDto,
+  ) {
+    return this.svc.update(principal, id, body);
+  }
+
+  @Delete(':id')
+  remove(@CurrentPrincipal() principal: Principal, @Param('id', new ParseUUIDPipe()) id: string) {
+    return this.svc.remove(principal, id);
   }
 }

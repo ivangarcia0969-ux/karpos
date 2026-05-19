@@ -1,15 +1,17 @@
-import { PageHeader, Button, Card, CardContent, EmptyState, Badge } from '@karpos/ui';
-import { Plus } from 'lucide-react';
+import { PageHeader, Card, CardContent, EmptyState, Badge } from '@karpos/ui';
 import { getServerClient } from '@/lib/api-client';
+import { CreateFarmForm } from './create-form';
 
 export const dynamic = 'force-dynamic';
 
 export default async function PrediosPage() {
   const client = getServerClient();
   let farms: Awaited<ReturnType<typeof client.listFarms>>['rows'] = [];
+  let total = 0;
   try {
     const res = await client.listFarms({ pageSize: 100 });
     farms = res.rows;
+    total = res.total;
   } catch {
     farms = [];
   }
@@ -18,19 +20,13 @@ export default async function PrediosPage() {
     <div className="space-y-6">
       <PageHeader
         title="Predios"
-        description="Fincas, sectores y lotes geo-referenciados."
-        actions={
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Nueva finca
-          </Button>
-        }
+        description={`Fincas registradas en tu organización (${total}).`}
       />
+      <CreateFarmForm />
       {farms.length === 0 ? (
         <EmptyState
           title="Aún no hay fincas"
-          description="Crea la primera finca para empezar a registrar lotes y árboles."
-          action={<Button>Crear finca</Button>}
+          description="Crea la primera finca con el formulario de arriba."
         />
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -45,7 +41,7 @@ export default async function PrediosPage() {
                   {f.region ?? '—'} · {f.countryCode}
                 </p>
                 <p className="text-sm text-karpos-bark/70">
-                  Área: {f.totalAreaHa ?? '—'} ha
+                  Área: {f.totalAreaHa ?? '—'} ha · Elevación: {f.elevationM ?? '—'} m
                 </p>
               </CardContent>
             </Card>

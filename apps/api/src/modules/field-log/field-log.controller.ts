@@ -1,33 +1,36 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { ZodValidationPipe } from '../../common/zod-validation.pipe.js';
-import { Permissions } from '../../iam/decorators/permissions.decorator.js';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
+import {
+  FieldLogService,
+  ListOperationsQuerySchema,
+  LogOperationSchema,
+} from './field-log.service.js';
+import type { ListOperationsQuery, LogOperationDto } from './field-log.service.js';
 import { CurrentPrincipal } from '../../iam/decorators/current-principal.decorator.js';
 import type { Principal } from '../../iam/auth.service.js';
-import { FieldLogService, LogOperationSchema, ListOperationsQuerySchema } from './field-log.service.js';
-import type { LogOperationDto, ListOperationsQuery } from './field-log.service.js';
+import { ZodValidationPipe } from '../../common/zod-validation.pipe.js';
 
-@ApiTags('bitacora-verde')
-@ApiBearerAuth()
-@Controller('field-operations')
+@Controller('/v1/field-operations')
 export class FieldLogController {
-  constructor(private readonly service: FieldLogService) {}
+  constructor(private readonly svc: FieldLogService) {}
 
   @Get()
-  @Permissions('field-log:read')
   list(
     @CurrentPrincipal() principal: Principal,
     @Query(new ZodValidationPipe(ListOperationsQuerySchema)) query: ListOperationsQuery,
   ) {
-    return this.service.list(principal, query);
+    return this.svc.list(principal, query);
+  }
+
+  @Get(':id')
+  get(@CurrentPrincipal() principal: Principal, @Param('id', new ParseUUIDPipe()) id: string) {
+    return this.svc.get(principal, id);
   }
 
   @Post()
-  @Permissions('field-log:write')
   log(
     @CurrentPrincipal() principal: Principal,
-    @Body(new ZodValidationPipe(LogOperationSchema)) dto: LogOperationDto,
+    @Body(new ZodValidationPipe(LogOperationSchema)) body: LogOperationDto,
   ) {
-    return this.service.log(principal, dto);
+    return this.svc.log(principal, body);
   }
 }

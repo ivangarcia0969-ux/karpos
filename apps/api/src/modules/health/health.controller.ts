@@ -1,55 +1,53 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { ZodValidationPipe } from '../../common/zod-validation.pipe.js';
-import { Permissions } from '../../iam/decorators/permissions.decorator.js';
-import { CurrentPrincipal } from '../../iam/decorators/current-principal.decorator.js';
-import type { Principal } from '../../iam/auth.service.js';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
+import { z } from 'zod';
 import { HealthService, RecordScoutingSchema, RecordSpraySchema } from './health.service.js';
 import type { RecordScoutingDto, RecordSprayDto } from './health.service.js';
+import { CurrentPrincipal } from '../../iam/decorators/current-principal.decorator.js';
+import type { Principal } from '../../iam/auth.service.js';
+import { ZodValidationPipe } from '../../common/zod-validation.pipe.js';
 
-@ApiTags('sanidad-plus')
-@ApiBearerAuth()
-@Controller('health')
-export class HealthController {
-  constructor(private readonly service: HealthService) {}
+const ScoutingsQuery = z.object({ plotId: z.string().uuid() });
+const VoidSpraySchema = z.object({ reason: z.string().min(3).max(500) });
+
+@Controller('/v1/health')
+export class HealthSanidadController {
+  constructor(private readonly svc: HealthService) {}
 
   @Get('scoutings')
-  @Permissions('health:read')
-  listScoutings(@CurrentPrincipal() principal: Principal, @Query('plotId') plotId: string) {
-    return this.service.listScoutings(principal, plotId);
+  listScoutings(
+    @CurrentPrincipal() principal: Principal,
+    @Query(new ZodValidationPipe(ScoutingsQuery)) q: z.infer<typeof ScoutingsQuery>,
+  ) {
+    return this.svc.listScoutings(principal, q.plotId);
   }
 
   @Post('scoutings')
-  @Permissions('health:write')
   recordScouting(
     @CurrentPrincipal() principal: Principal,
-    @Body(new ZodValidationPipe(RecordScoutingSchema)) dto: RecordScoutingDto,
+    @Body(new ZodValidationPipe(RecordScoutingSchema)) body: RecordScoutingDto,
   ) {
-    return this.service.recordScouting(principal, dto);
+    return this.svc.recordScouting(principal, body);
   }
 
   @Get('sprays')
-  @Permissions('health:read')
   listSprays(@CurrentPrincipal() principal: Principal, @Query('plotId') plotId?: string) {
-    return this.service.listSprays(principal, plotId);
+    return this.svc.listSprays(principal, plotId);
   }
 
   @Post('sprays')
-  @Permissions('sprays:apply')
   recordSpray(
     @CurrentPrincipal() principal: Principal,
-    @Body(new ZodValidationPipe(RecordSpraySchema)) dto: RecordSprayDto,
+    @Body(new ZodValidationPipe(RecordSpraySchema)) body: RecordSprayDto,
   ) {
-    return this.service.recordSpray(principal, dto);
+    return this.svc.recordSpray(principal, body);
   }
 
   @Post('sprays/:id/void')
-  @Permissions('sprays:apply')
   voidSpray(
     @CurrentPrincipal() principal: Principal,
-    @Param('id') id: string,
-    @Body('reason') reason: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body(new ZodValidationPipe(VoidSpraySchema)) body: z.infer<typeof VoidSpraySchema>,
   ) {
-    return this.service.voidSpray(principal, id, reason);
+    return this.svc.voidSpray(principal, id, body.reason);
   }
 }

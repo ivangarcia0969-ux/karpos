@@ -1,45 +1,35 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { ZodValidationPipe } from '../../common/zod-validation.pipe.js';
-import { Permissions } from '../../iam/decorators/permissions.decorator.js';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
+import { z } from 'zod';
+import { PhenologyService, RecordEventSchema } from './phenology.service.js';
+import type { RecordEventDto } from './phenology.service.js';
 import { CurrentPrincipal } from '../../iam/decorators/current-principal.decorator.js';
 import type { Principal } from '../../iam/auth.service.js';
-import { GddQuerySchema, PhenologyService, RecordPhenologyEventSchema } from './phenology.service.js';
-import type { GddQuery, RecordPhenologyEventDto } from './phenology.service.js';
+import { ZodValidationPipe } from '../../common/zod-validation.pipe.js';
 
-@ApiTags('fenoflow')
-@ApiBearerAuth()
-@Controller('phenology')
+const ListQuerySchema = z.object({ plotId: z.string().uuid() });
+
+@Controller('/v1/phenology/events')
 export class PhenologyController {
-  constructor(private readonly service: PhenologyService) {}
+  constructor(private readonly svc: PhenologyService) {}
 
-  @Get('events')
-  @Permissions('phenology:read')
-  listEvents(@CurrentPrincipal() principal: Principal, @Query('plotId') plotId: string) {
-    return this.service.listEvents(principal, plotId);
-  }
-
-  @Post('events')
-  @Permissions('phenology:write')
-  recordEvent(
+  @Get()
+  list(
     @CurrentPrincipal() principal: Principal,
-    @Body(new ZodValidationPipe(RecordPhenologyEventSchema)) dto: RecordPhenologyEventDto,
+    @Query(new ZodValidationPipe(ListQuerySchema)) query: z.infer<typeof ListQuerySchema>,
   ) {
-    return this.service.recordEvent(principal, dto);
+    return this.svc.list(principal, query.plotId);
   }
 
-  @Get('gdd')
-  @Permissions('phenology:read')
-  gdd(
+  @Post()
+  record(
     @CurrentPrincipal() principal: Principal,
-    @Query(new ZodValidationPipe(GddQuerySchema)) query: GddQuery,
+    @Body(new ZodValidationPipe(RecordEventSchema)) body: RecordEventDto,
   ) {
-    return this.service.computeGdd(principal, query);
+    return this.svc.record(principal, body);
   }
 
-  @Get('profiles')
-  @Permissions('phenology:read')
-  listProfiles(@CurrentPrincipal() principal: Principal, @Query('speciesId') speciesId?: string) {
-    return this.service.listProfiles(principal, speciesId);
+  @Delete(':id')
+  remove(@CurrentPrincipal() principal: Principal, @Param('id', new ParseUUIDPipe()) id: string) {
+    return this.svc.remove(principal, id);
   }
 }

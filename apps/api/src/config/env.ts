@@ -9,39 +9,13 @@ const Schema = z.object({
   WEB_BASE_URL: z.string().url().default('http://localhost:3000'),
 
   DATABASE_URL: z.string().url(),
-  REDIS_URL: z.string().url(),
-  NATS_URL: z.string().url().default('nats://localhost:4222'),
 
-  S3_ENDPOINT: z.string().url(),
-  S3_REGION: z.string().default('us-east-1'),
-  S3_BUCKET_FILES: z.string().default('karpos-files'),
-  S3_ACCESS_KEY: z.string(),
-  S3_SECRET_KEY: z.string(),
-  S3_FORCE_PATH_STYLE: z.coerce.boolean().default(true),
+  JWT_SECRET: z.string().min(32),
+  JWT_EXPIRES_IN: z.string().default('7d'),
+  COOKIE_NAME: z.string().default('karpos.session'),
+  COOKIE_DOMAIN: z.string().optional(),
+  COOKIE_SECURE: z.coerce.boolean().default(true),
 
-  OIDC_ISSUER: z.string().url(),
-  OIDC_CLIENT_ID: z.string(),
-  OIDC_CLIENT_SECRET: z.string(),
-  JWT_AUDIENCE: z.string().default('karpos-api'),
-  JWT_ISSUER: z.string().url(),
-
-  ML_SERVICE_URL: z.string().url().default('http://localhost:8000'),
-  ML_API_KEY: z.string().optional(),
-
-  OLLAMA_URL: z.string().url().optional(),
-  OLLAMA_MODEL: z.string().default('llama3.1'),
-
-  STRIPE_SECRET_KEY: z.string().optional(),
-  STRIPE_WEBHOOK_SECRET: z.string().optional(),
-  WOMPI_PRIVATE_KEY: z.string().optional(),
-
-  OPENAI_API_KEY: z.string().optional(),
-  ANTHROPIC_API_KEY: z.string().optional(),
-
-  COPERNICUS_USER: z.string().optional(),
-  COPERNICUS_PASSWORD: z.string().optional(),
-
-  OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().optional(),
   SENTRY_DSN: z.string().optional(),
 });
 

@@ -4,6 +4,7 @@ import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from '@fastify/helmet';
 import cors from '@fastify/cors';
+import cookie from '@fastify/cookie';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module.js';
 import { loadEnv } from './config/env.js';
@@ -21,6 +22,7 @@ async function bootstrap() {
   app.enableShutdownHooks();
 
   await app.register(helmet, { contentSecurityPolicy: false });
+  await app.register(cookie);
   await app.register(cors, {
     origin: env.NODE_ENV === 'production' ? env.WEB_BASE_URL : true,
     credentials: true,

@@ -1,33 +1,34 @@
 import { cookies } from 'next/headers';
+import { jwtVerify } from 'jose';
 
 export type SessionUser = {
   userId: string;
   orgId: string;
   email: string;
-  fullName: string;
-  permissions: string[];
+  displayName: string;
+  role: string;
 };
 
-export function getSession(): SessionUser | null {
+const COOKIE_NAME = process.env.KARPOS_COOKIE_NAME ?? 'karpos.session';
+const JWT_SECRET = process.env.JWT_SECRET ?? '';
+const secretBytes = JWT_SECRET ? new TextEncoder().encode(JWT_SECRET) : null;
+
+export async function getSession(): Promise<SessionUser | null> {
   const c = cookies();
-  const raw = c.get('karpos.session')?.value;
-  if (!raw) return null;
+  const token = c.get(COOKIE_NAME)?.value;
+  if (!token || !secretBytes) return null;
   try {
-    return JSON.parse(Buffer.from(raw, 'base64url').toString('utf8')) as SessionUser;
+    const { payload } = await jwtVerify(token, secretBytes, { audience: 'karpos', issuer: 'karpos' });
+    const p = payload as unknown as SessionUser;
+    if (!p.userId || !p.orgId || !p.email) return null;
+    return {
+      userId: p.userId,
+      orgId: p.orgId,
+      email: p.email,
+      displayName: p.displayName ?? p.email,
+      role: p.role ?? 'member',
+    };
   } catch {
     return null;
   }
-}
-
-export function requireSession(): SessionUser {
-  const session = getSession();
-  if (!session) {
-    throw new Error('unauthenticated');
-  }
-  return session;
-}
-
-export function hasPermission(session: SessionUser | null, permission: string): boolean {
-  if (!session) return false;
-  return session.permissions.includes('*') || session.permissions.includes(permission);
 }

@@ -1,0 +1,17 @@
+app.karpos.surcoapp.tech {
+    encode zstd gzip
+
+    # /v1/* and /docs go to the API; everything else to the web.
+    @api path /v1/* /docs /docs/*
+    handle @api {
+        reverse_proxy 127.0.0.1:4100
+    }
+    handle {
+        reverse_proxy 127.0.0.1:3100
+    }
+
+    log {
+        output file /var/log/caddy/karpos.access.log
+        format json
+    }
+}
