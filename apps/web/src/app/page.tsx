@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Button, Logo } from '@karpos/ui';
-import { ArrowRight, Sprout, ShieldCheck, Database, BarChart3, MapPin, QrCode } from 'lucide-react';
+import { ArrowRight, Sprout, ShieldCheck, Database, MapPin, QrCode, Bug } from 'lucide-react';
 
 export default function Landing() {
   return (
@@ -74,7 +74,7 @@ export default function Landing() {
               text="Cronología de estados fenológicos por lote (Meier 2001). Calculá ventanas óptimas por especie."
             />
             <FeatureCard
-              Icon={Bug as never}
+              Icon={Bug}
               title="Sanidad+ con PHI/REI"
               text="Monitoreos por categoría y severidad. Aplicaciones append-only con cálculo automático del intervalo pre-cosecha."
             />

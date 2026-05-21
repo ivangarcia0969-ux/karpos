@@ -157,7 +157,7 @@ export default async function PlotDetail({ params }: { params: { id: string } })
       <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-5">
         <StatPill icon={ClipboardList} label="Operaciones" value={ops.length} />
         <StatPill icon={Sprout} label="Fenología" value={phenology.length} />
-        <StatPill icon={Bug as never} label="Monitoreos" value={scoutings.length} />
+        <StatPill icon={Bug} label="Monitoreos" value={scoutings.length} />
         <StatPill icon={Beaker} label="Aplicaciones" value={sprays.length} />
         <StatPill icon={Wheat} label="Cosechas" value={lots.length} />
       </div>
