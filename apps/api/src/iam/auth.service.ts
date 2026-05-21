@@ -1,6 +1,6 @@
 import { Inject, Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { and, eq } from 'drizzle-orm';
-import * as bcrypt from 'bcryptjs';
+import bcrypt from 'bcryptjs';
 import { SignJWT, jwtVerify } from 'jose';
 import { DRIZZLE, type Database } from '../database/database.module.js';
 import { users, memberships } from '../database/schema/iam.js';
