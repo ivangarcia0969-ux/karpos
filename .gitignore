@@ -68,8 +68,11 @@ pnpm-debug.log*
 tmp/
 temp/
 
-# Claude Code local state (per-machine, never committed)
-.claude/
+# Claude Code local state (per-machine) — pero versionar skills compartidos del repo
+.claude/*
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/karpos/
 
 # Compiled test artifacts
 apps/api/test/*.js
