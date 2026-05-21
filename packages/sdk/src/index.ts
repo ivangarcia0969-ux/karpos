@@ -95,6 +95,18 @@ export class KarposClient {
     const suffix = qs.toString() ? `?${qs}` : '';
     return this.request<Array<FitoProduct>>('GET', `/v1/catalog/fito-products${suffix}`);
   }
+  getFitoProduct(id: string) {
+    return this.request<FitoProduct>('GET', `/v1/catalog/fito-products/${id}`);
+  }
+  createFitoProduct(body: Partial<FitoProduct> & { commercialName: string; activeIngredient: string; category: string }) {
+    return this.request<FitoProduct>('POST', '/v1/catalog/fito-products', body);
+  }
+  updateFitoProduct(id: string, body: Partial<FitoProduct>) {
+    return this.request<FitoProduct>('PUT', `/v1/catalog/fito-products/${id}`, body);
+  }
+  deleteFitoProduct(id: string) {
+    return this.request<{ ok: boolean }>('DELETE', `/v1/catalog/fito-products/${id}`);
+  }
 
   // Predios
   listFarms(query?: { q?: string; page?: number; pageSize?: number }) {

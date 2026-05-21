@@ -1,6 +1,9 @@
 import { PageHeader, EmptyState, Badge, TableContainer, Table, THead, TR, TH, TD } from '@karpos/ui';
 import { Library } from 'lucide-react';
 import { getServerClient } from '@/lib/api-client';
+import { getSession } from '@/lib/session';
+import { FitoActions } from './fito-actions';
+import { NewFitoButton } from './new-fito-button';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,7 +40,11 @@ const TOX_TONE: Record<string, 'danger' | 'warning' | 'info' | 'success'> = {
 
 export default async function CatalogosPage() {
   const sdk = getServerClient();
+  const session = await getSession();
   const products = await sdk.listFitoProducts().catch(() => []);
+
+  const orgProducts = products.filter((p) => p.orgId === session?.orgId);
+  const globalProducts = products.filter((p) => !p.orgId);
 
   const byCategory = products.reduce<Record<string, number>>((acc, p) => {
     acc[p.category] = (acc[p.category] ?? 0) + 1;
@@ -48,7 +55,8 @@ export default async function CatalogosPage() {
     <div>
       <PageHeader
         title="Catálogos · Fitosanitarios"
-        description={`${products.length} productos registrados ICA · período de carencia (PHI), reingreso (REI), dosis y objetivos.`}
+        description={`${globalProducts.length} globales (ICA) + ${orgProducts.length} de tu organización · PHI, REI, dosis y objetivos.`}
+        actions={<NewFitoButton />}
       />
 
       <div className="mb-6 flex flex-wrap gap-2">
@@ -63,7 +71,8 @@ export default async function CatalogosPage() {
         <EmptyState
           icon={<Library className="h-10 w-10" />}
           title="Sin productos en el catálogo"
-          description="El catálogo se siembra con productos registrados ICA Colombia. Corré el seed-fito desde el VPS."
+          description="Cargá tu primer producto fitosanitario o solicitá el seed inicial ICA."
+          action={<NewFitoButton variant="primary" />}
         />
       ) : (
         <TableContainer>
@@ -78,52 +87,62 @@ export default async function CatalogosPage() {
                 <TH className="text-right">PHI</TH>
                 <TH className="text-right">REI</TH>
                 <TH>Dosis recom.</TH>
-                <TH>Cultivos</TH>
-                <TH>Fabricante</TH>
+                <TH>Origen</TH>
+                <TH className="text-right">Acciones</TH>
               </TR>
             </THead>
             <tbody>
-              {products.map((p) => (
-                <TR key={p.id} className="hover:bg-neutral-50">
-                  <TD className="font-medium text-neutral-900">
-                    {p.commercialName}
-                    {p.formulationType ? <span className="ml-2 text-xs text-neutral-500">{p.formulationType}</span> : null}
-                  </TD>
-                  <TD className="text-neutral-700">{p.activeIngredient}</TD>
-                  <TD>
-                    <Badge tone={CATEGORY_TONE[p.category] ?? 'neutral'}>
-                      {CATEGORY_LABEL[p.category] ?? p.category}
-                    </Badge>
-                  </TD>
-                  <TD>
-                    {p.toxicologyClass ? (
-                      <Badge tone={TOX_TONE[p.toxicologyClass] ?? 'neutral'}>{p.toxicologyClass}</Badge>
-                    ) : (
-                      '—'
-                    )}
-                  </TD>
-                  <TD className="font-mono text-xs">{p.registrationNo ?? '—'}</TD>
-                  <TD className="text-right tabular-nums">{p.defaultPhiDays}d</TD>
-                  <TD className="text-right tabular-nums">{p.defaultReiHours ? `${p.defaultReiHours}h` : '—'}</TD>
-                  <TD className="text-neutral-600 tabular-nums">
-                    {p.recommendedDoseMin
-                      ? `${p.recommendedDoseMin}–${p.recommendedDoseMax ?? '?'} ${p.doseUnit ?? ''}`
-                      : '—'}
-                  </TD>
-                  <TD className="text-xs text-neutral-500">
-                    {p.targetCrops.slice(0, 3).join(', ')}
-                    {p.targetCrops.length > 3 ? ` +${p.targetCrops.length - 3}` : ''}
-                  </TD>
-                  <TD className="text-xs text-neutral-500">{p.manufacturer ?? '—'}</TD>
-                </TR>
-              ))}
+              {products.map((p) => {
+                const isMine = p.orgId === session?.orgId;
+                return (
+                  <TR key={p.id} className="hover:bg-neutral-50">
+                    <TD className="font-medium text-neutral-900">
+                      {p.commercialName}
+                      {p.formulationType ? (
+                        <span className="ml-2 text-xs text-neutral-500">{p.formulationType}</span>
+                      ) : null}
+                    </TD>
+                    <TD className="text-neutral-700">{p.activeIngredient}</TD>
+                    <TD>
+                      <Badge tone={CATEGORY_TONE[p.category] ?? 'neutral'}>
+                        {CATEGORY_LABEL[p.category] ?? p.category}
+                      </Badge>
+                    </TD>
+                    <TD>
+                      {p.toxicologyClass ? (
+                        <Badge tone={TOX_TONE[p.toxicologyClass] ?? 'neutral'}>{p.toxicologyClass}</Badge>
+                      ) : (
+                        '—'
+                      )}
+                    </TD>
+                    <TD className="font-mono text-xs">{p.registrationNo ?? '—'}</TD>
+                    <TD className="text-right tabular-nums">{p.defaultPhiDays}d</TD>
+                    <TD className="text-right tabular-nums">{p.defaultReiHours ? `${p.defaultReiHours}h` : '—'}</TD>
+                    <TD className="tabular-nums text-neutral-600">
+                      {p.recommendedDoseMin
+                        ? `${p.recommendedDoseMin}–${p.recommendedDoseMax ?? '?'} ${p.doseUnit ?? ''}`
+                        : '—'}
+                    </TD>
+                    <TD>
+                      {isMine ? (
+                        <Badge tone="brand">Mi organización</Badge>
+                      ) : (
+                        <Badge tone="neutral">Global ICA</Badge>
+                      )}
+                    </TD>
+                    <TD className="text-right">
+                      {isMine ? <FitoActions product={p} /> : <span className="text-xs text-neutral-400">—</span>}
+                    </TD>
+                  </TR>
+                );
+              })}
             </tbody>
           </Table>
         </TableContainer>
       )}
 
       <p className="mt-4 text-xs text-neutral-500">
-        Datos basados en el Registro Nacional de Plaguicidas Químicos de Uso Agrícola del ICA. Verificá contra la última base ICA antes de uso comercial.
+        Los productos globales (ICA Colombia) no son editables: están sincronizados con el Registro Nacional de Plaguicidas. Tu organización puede agregar productos propios.
       </p>
     </div>
   );
