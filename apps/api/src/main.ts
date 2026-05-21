@@ -18,7 +18,6 @@ async function bootstrap() {
   );
 
   app.useLogger(app.get(Logger));
-  app.setGlobalPrefix('v1', { exclude: ['health', 'ready', 'metrics'] });
   app.enableShutdownHooks();
 
   await app.register(helmet, { contentSecurityPolicy: false });
