@@ -7,6 +7,7 @@ import type {
   SprayRecord,
   HarvestLot,
   HarvestPlan,
+  FitoProduct,
 } from '@karpos/types';
 
 export type Principal = {
@@ -85,6 +86,14 @@ export class KarposClient {
       'GET',
       `/v1/catalog/varieties${suffix}`,
     );
+  }
+  listFitoProducts(query: { category?: string; q?: string; cropCode?: string } = {}) {
+    const qs = new URLSearchParams();
+    if (query.category) qs.set('category', query.category);
+    if (query.q) qs.set('q', query.q);
+    if (query.cropCode) qs.set('cropCode', query.cropCode);
+    const suffix = qs.toString() ? `?${qs}` : '';
+    return this.request<Array<FitoProduct>>('GET', `/v1/catalog/fito-products${suffix}`);
   }
 
   // Predios
@@ -196,4 +205,4 @@ export class KarposClient {
   }
 }
 
-export type { Farm, Plot, FieldOperation, PhenologyEvent, PestScouting, SprayRecord, HarvestLot, HarvestPlan };
+export type { Farm, Plot, FieldOperation, PhenologyEvent, PestScouting, SprayRecord, HarvestLot, HarvestPlan, FitoProduct };

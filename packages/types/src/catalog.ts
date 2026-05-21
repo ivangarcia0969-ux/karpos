@@ -1,0 +1,37 @@
+import { z } from 'zod';
+
+export const FitoProductSchema = z.object({
+  id: z.string().uuid(),
+  orgId: z.string().uuid().nullable().optional(),
+  commercialName: z.string(),
+  activeIngredient: z.string(),
+  registrationNo: z.string().nullable().optional(),
+  registrationCountry: z.string().nullable().optional(),
+  formulationType: z.string().nullable().optional(),
+  category: z.enum([
+    'fungicide',
+    'insecticide',
+    'acaricide',
+    'herbicide',
+    'nematicide',
+    'bactericide',
+    'plant_growth_regulator',
+    'biological',
+    'adjuvant',
+    'fertilizer',
+    'other',
+  ]),
+  toxicologyClass: z.string().nullable().optional(),
+  defaultPhiDays: z.number().int(),
+  defaultReiHours: z.number().int().nullable().optional(),
+  recommendedDoseMin: z.union([z.string(), z.number()]).nullable().optional(),
+  recommendedDoseMax: z.union([z.string(), z.number()]).nullable().optional(),
+  doseUnit: z.string().nullable().optional(),
+  targetPests: z.array(z.string()),
+  targetCrops: z.array(z.string()),
+  modeOfAction: z.string().nullable().optional(),
+  groupCode: z.string().nullable().optional(),
+  manufacturer: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+});
+export type FitoProduct = z.infer<typeof FitoProductSchema>;

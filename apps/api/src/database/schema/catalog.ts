@@ -1,4 +1,4 @@
-import { pgSchema, uuid, text } from 'drizzle-orm/pg-core';
+import { pgSchema, uuid, text, integer, numeric, boolean, timestamp } from 'drizzle-orm/pg-core';
 
 export const catalog = pgSchema('catalog');
 
@@ -21,5 +21,32 @@ export const varieties = catalog.table('varieties', {
   notes: text('notes'),
 });
 
+export const fitoProducts = catalog.table('fito_products', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  orgId: uuid('org_id'),
+  commercialName: text('commercial_name').notNull(),
+  activeIngredient: text('active_ingredient').notNull(),
+  registrationNo: text('registration_no'),
+  registrationCountry: text('registration_country').default('CO'),
+  formulationType: text('formulation_type'),
+  category: text('category').notNull(),
+  toxicologyClass: text('toxicology_class'),
+  defaultPhiDays: integer('default_phi_days').notNull().default(0),
+  defaultReiHours: integer('default_rei_hours'),
+  recommendedDoseMin: numeric('recommended_dose_min', { precision: 12, scale: 4 }),
+  recommendedDoseMax: numeric('recommended_dose_max', { precision: 12, scale: 4 }),
+  doseUnit: text('dose_unit'),
+  targetPests: text('target_pests').array().notNull().default([]),
+  targetCrops: text('target_crops').array().notNull().default([]),
+  modeOfAction: text('mode_of_action'),
+  groupCode: text('group_code'),
+  manufacturer: text('manufacturer'),
+  notes: text('notes'),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 export type CropSpecies = typeof cropSpecies.$inferSelect;
 export type Variety = typeof varieties.$inferSelect;
+export type FitoProduct = typeof fitoProducts.$inferSelect;

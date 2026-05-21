@@ -10,6 +10,7 @@ import {
   Wheat,
   LogOut,
   ChevronDown,
+  Library,
 } from 'lucide-react';
 import { getSession } from '../../lib/session.js';
 import { ActiveLink } from './active-link';
@@ -21,6 +22,7 @@ const NAV = [
   { href: '/console/fenoflow', label: 'Fenoflow', Icon: Sprout },
   { href: '/console/sanidad', label: 'Sanidad+', Icon: Bug },
   { href: '/console/cosecha', label: 'Cosecha360', Icon: Wheat },
+  { href: '/console/catalogos', label: 'Catálogos', Icon: Library },
 ];
 
 export default async function ConsoleLayout({ children }: { children: React.ReactNode }) {

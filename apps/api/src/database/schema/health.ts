@@ -24,6 +24,7 @@ export const sprayRecords = karpos.table('spray_records', {
   orgId: uuid('org_id').notNull(),
   plotId: uuid('plot_id').notNull(),
   scoutingId: uuid('scouting_id'),
+  fitoProductId: uuid('fito_product_id'),
   appliedAt: timestamp('applied_at', { withTimezone: true }).notNull(),
   endedAt: timestamp('ended_at', { withTimezone: true }),
   operator: text('operator').notNull(),

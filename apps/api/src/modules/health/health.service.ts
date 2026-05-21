@@ -23,6 +23,7 @@ export type RecordScoutingDto = z.infer<typeof RecordScoutingSchema>;
 export const RecordSpraySchema = z.object({
   plotId: z.string().uuid(),
   scoutingId: z.string().uuid().optional(),
+  fitoProductId: z.string().uuid().optional(),
   appliedAt: z.string().datetime(),
   endedAt: z.string().datetime().optional(),
   operator: z.string().min(1).max(120),
@@ -98,6 +99,7 @@ export class HealthService {
         orgId: principal.orgId,
         plotId: dto.plotId,
         scoutingId: dto.scoutingId,
+        fitoProductId: dto.fitoProductId,
         appliedAt: new Date(dto.appliedAt),
         endedAt: dto.endedAt ? new Date(dto.endedAt) : undefined,
         operator: dto.operator,
