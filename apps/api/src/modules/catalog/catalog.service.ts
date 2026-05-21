@@ -1,4 +1,11 @@
-import { Inject, Injectable, NotFoundException, ForbiddenException, ConflictException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
 import { and, eq, or, isNull, ilike, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { DRIZZLE, type Database } from '../../database/database.module.js';
@@ -59,10 +66,34 @@ export class CatalogService {
       .orderBy(varieties.name);
   }
 
-  listFitoProducts(opts: { orgId?: string; category?: string; q?: string; cropCode?: string } = {}) {
+  async listFitoProducts(opts: { orgId?: string; category?: string; q?: string; cropCode?: string } = {}) {
+    // Scope:
+    //   - globales (org_id IS NULL) que la org NO ha clonado, +
+    //   - propios de la org.
+    // Esto evita que aparezca duplicado el "Score 250 EC" global cuando ya lo adoptaste.
+    const adoptedSource = opts.orgId
+      ? sql<string>`(
+          SELECT cloned_from_id::text FROM catalog.fito_products
+          WHERE org_id = ${opts.orgId} AND cloned_from_id IS NOT NULL AND is_active = true
+        )`
+      : null;
+
     const conds = [eq(fitoProducts.isActive, true)];
-    if (opts.orgId) conds.push(or(isNull(fitoProducts.orgId), eq(fitoProducts.orgId, opts.orgId))!);
-    else conds.push(isNull(fitoProducts.orgId));
+
+    if (opts.orgId) {
+      conds.push(
+        or(
+          and(eq(fitoProducts.orgId, opts.orgId)),
+          and(
+            isNull(fitoProducts.orgId),
+            sql`${fitoProducts.id}::text NOT IN ${adoptedSource}`,
+          ),
+        )!,
+      );
+    } else {
+      conds.push(isNull(fitoProducts.orgId));
+    }
+
     if (opts.category) conds.push(eq(fitoProducts.category, opts.category));
     if (opts.q) {
       conds.push(
@@ -76,11 +107,63 @@ export class CatalogService {
     if (opts.cropCode) {
       conds.push(sql`${opts.cropCode} = ANY(${fitoProducts.targetCrops})`);
     }
+
     return this.db
       .select()
       .from(fitoProducts)
       .where(and(...conds))
       .orderBy(fitoProducts.commercialName);
+  }
+
+  async cloneFitoProduct(orgId: string, sourceId: string) {
+    const [source] = await this.db
+      .select()
+      .from(fitoProducts)
+      .where(eq(fitoProducts.id, sourceId));
+    if (!source) throw new NotFoundException('source_not_found');
+    if (source.orgId !== null) {
+      throw new BadRequestException('only_global_products_can_be_cloned');
+    }
+    const [already] = await this.db
+      .select({ id: fitoProducts.id })
+      .from(fitoProducts)
+      .where(
+        and(
+          eq(fitoProducts.orgId, orgId),
+          eq(fitoProducts.clonedFromId, sourceId),
+          eq(fitoProducts.isActive, true),
+        ),
+      );
+    if (already) {
+      throw new ConflictException('already_cloned');
+    }
+
+    const [row] = await this.db
+      .insert(fitoProducts)
+      .values({
+        orgId,
+        clonedFromId: source.id,
+        commercialName: source.commercialName,
+        activeIngredient: source.activeIngredient,
+        registrationNo: source.registrationNo,
+        registrationCountry: source.registrationCountry,
+        formulationType: source.formulationType,
+        category: source.category,
+        toxicologyClass: source.toxicologyClass,
+        defaultPhiDays: source.defaultPhiDays,
+        defaultReiHours: source.defaultReiHours,
+        recommendedDoseMin: source.recommendedDoseMin,
+        recommendedDoseMax: source.recommendedDoseMax,
+        doseUnit: source.doseUnit,
+        targetPests: source.targetPests,
+        targetCrops: source.targetCrops,
+        modeOfAction: source.modeOfAction,
+        groupCode: source.groupCode,
+        manufacturer: source.manufacturer,
+        notes: source.notes,
+      })
+      .returning();
+    return row;
   }
 
   async getFitoProduct(orgId: string, id: string) {

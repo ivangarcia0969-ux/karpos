@@ -4,6 +4,7 @@ import { getServerClient } from '@/lib/api-client';
 import { getSession } from '@/lib/session';
 import { FitoActions } from './fito-actions';
 import { NewFitoButton } from './new-fito-button';
+import { AdoptButton } from './adopt-button';
 
 export const dynamic = 'force-dynamic';
 
@@ -131,7 +132,11 @@ export default async function CatalogosPage() {
                       )}
                     </TD>
                     <TD className="text-right">
-                      {isMine ? <FitoActions product={p} /> : <span className="text-xs text-neutral-400">—</span>}
+                      {isMine ? (
+                        <FitoActions product={p} />
+                      ) : (
+                        <AdoptButton id={p.id} name={p.commercialName} />
+                      )}
                     </TD>
                   </TR>
                 );
@@ -142,7 +147,9 @@ export default async function CatalogosPage() {
       )}
 
       <p className="mt-4 text-xs text-neutral-500">
-        Los productos globales (ICA Colombia) no son editables: están sincronizados con el Registro Nacional de Plaguicidas. Tu organización puede agregar productos propios.
+        Los productos globales (ICA Colombia) son read-only. Si querés personalizar un producto global con
+        tu propio PHI, dosis o notas, pulsá <strong>Adoptar</strong> — se copia al catálogo de tu organización
+        y queda totalmente editable. El global desaparece de la lista al adoptarlo (sin duplicados).
       </p>
     </div>
   );

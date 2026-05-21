@@ -43,6 +43,7 @@ export const fitoProducts = catalog.table('fito_products', {
   manufacturer: text('manufacturer'),
   notes: text('notes'),
   isActive: boolean('is_active').notNull().default(true),
+  clonedFromId: uuid('cloned_from_id'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });

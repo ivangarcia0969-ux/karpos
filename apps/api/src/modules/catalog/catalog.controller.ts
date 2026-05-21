@@ -68,4 +68,12 @@ export class CatalogController {
   ) {
     return this.svc.deleteFitoProduct(principal.orgId, id);
   }
+
+  @Post('fito-products/:id/clone')
+  cloneFitoProduct(
+    @CurrentPrincipal() principal: Principal,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.svc.cloneFitoProduct(principal.orgId, id);
+  }
 }

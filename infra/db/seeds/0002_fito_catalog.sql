@@ -127,4 +127,4 @@ VALUES
    ARRAY['avocado','citrus_orange','citrus_lime','mango','grape','banana'],
    'Tensoactivo no iónico', NULL, 'Genérico',
    'Mejora cobertura y adherencia. Combinar con fungicidas/insecticidas.')
-ON CONFLICT (commercial_name) DO NOTHING;
+ON CONFLICT (org_id, commercial_name) DO NOTHING;

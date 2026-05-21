@@ -107,6 +107,9 @@ export class KarposClient {
   deleteFitoProduct(id: string) {
     return this.request<{ ok: boolean }>('DELETE', `/v1/catalog/fito-products/${id}`);
   }
+  cloneFitoProduct(id: string) {
+    return this.request<FitoProduct>('POST', `/v1/catalog/fito-products/${id}/clone`);
+  }
 
   // Predios
   listFarms(query?: { q?: string; page?: number; pageSize?: number }) {
