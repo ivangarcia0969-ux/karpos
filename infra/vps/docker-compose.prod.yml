@@ -55,6 +55,20 @@ services:
       - ../../infra/db:/app/infra/db:ro
     networks: [karpos]
 
+  seed-demo:
+    image: node:20-alpine
+    container_name: karpos-seed-demo
+    profiles: ["demo"]
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-karpos}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-karpos}
+    working_dir: /app
+    entrypoint: ["sh", "-c", "npm install --silent postgres@3.4.4 bcryptjs@2.4.3 && node /app/scripts/seed-demo.mjs"]
+    volumes:
+      - ../../scripts:/app/scripts:ro
+    networks: [karpos]
+
   api:
     image: karpos-api:${KARPOS_TAG:-latest}
     build:
