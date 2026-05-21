@@ -1,16 +1,28 @@
-import { PageHeader, Card, CardContent, EmptyState } from '@karpos/ui';
+import {
+  PageHeader,
+  EmptyState,
+  Badge,
+  TableContainer,
+  Table,
+  THead,
+  TR,
+  TH,
+  TD,
+} from '@karpos/ui';
+import { ClipboardList } from 'lucide-react';
 import { getServerClient } from '@/lib/api-client';
+import { NewOperationButton } from './new-operation-button';
 
 export const dynamic = 'force-dynamic';
 
-const OP_LABELS: Record<string, string> = {
+const OP_LABEL: Record<string, string> = {
   prune: 'Poda',
   fertilize: 'Fertilización',
   spray: 'Aplicación',
   irrigate: 'Riego',
   thin: 'Raleo',
   mow: 'Desbroce',
-  manual_log: 'Manual',
+  manual_log: 'Registro manual',
   training: 'Tutorado',
   soil_amendment: 'Enmienda',
   pest_monitoring: 'Monitoreo',
@@ -19,57 +31,60 @@ const OP_LABELS: Record<string, string> = {
 
 export default async function BitacoraPage() {
   const sdk = getServerClient();
-  let ops: Awaited<ReturnType<typeof sdk.listFieldOperations>> = [];
-  try {
-    ops = await sdk.listFieldOperations({ pageSize: 200 });
-  } catch {
-    ops = [];
-  }
+  const [ops, plots] = await Promise.all([
+    sdk.listFieldOperations({ pageSize: 200 }).catch(() => []),
+    sdk.listPlots().catch(() => []),
+  ]);
+
+  const plotById = new Map(plots.map((p) => [p.id, p]));
 
   return (
-    <div className="space-y-6">
+    <div>
       <PageHeader
         title="Bitácora Verde"
-        description={`Operaciones de campo registradas (${ops.length}).`}
+        description={`${ops.length} operación${ops.length === 1 ? '' : 'es'} registrada${ops.length === 1 ? '' : 's'}.`}
+        actions={<NewOperationButton plots={plots} />}
       />
+
       {ops.length === 0 ? (
         <EmptyState
-          title="Sin operaciones"
-          description="Registrá la primera operación desde la app móvil o desde el detalle de un lote."
+          icon={<ClipboardList className="h-10 w-10" />}
+          title="Sin operaciones todavía"
+          description="Registrá podas, aplicaciones, riegos y demás labores con su consumo de insumos."
+          action={<NewOperationButton plots={plots} variant="primary" />}
         />
       ) : (
-        <Card>
-          <CardContent className="overflow-x-auto p-0">
-            <table className="w-full text-sm">
-              <thead className="border-b border-karpos-fog bg-karpos-cream">
-                <tr>
-                  <th className="px-4 py-2 text-left">Tipo</th>
-                  <th className="px-4 py-2 text-left">Lote</th>
-                  <th className="px-4 py-2 text-left">Inicio</th>
-                  <th className="px-4 py-2 text-left">Fin</th>
-                  <th className="px-4 py-2 text-right">Área (ha)</th>
-                  <th className="px-4 py-2 text-left">Notas</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ops.map((op) => (
-                  <tr key={op.id} className="border-b border-karpos-fog/40">
-                    <td className="px-4 py-2 font-medium">
-                      {OP_LABELS[op.operationType] ?? op.operationType}
-                    </td>
-                    <td className="px-4 py-2 font-mono text-xs">{op.plotId.slice(0, 8)}…</td>
-                    <td className="px-4 py-2">{new Date(op.startedAt).toLocaleString()}</td>
-                    <td className="px-4 py-2">
-                      {op.endedAt ? new Date(op.endedAt).toLocaleString() : '—'}
-                    </td>
-                    <td className="px-4 py-2 text-right">{op.areaHa ?? '—'}</td>
-                    <td className="px-4 py-2 text-karpos-bark/70">{op.notes ?? '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
+        <TableContainer>
+          <Table>
+            <THead>
+              <TR>
+                <TH>Tipo</TH>
+                <TH>Lote</TH>
+                <TH>Inicio</TH>
+                <TH>Fin</TH>
+                <TH className="text-right">Área (ha)</TH>
+                <TH>Notas</TH>
+              </TR>
+            </THead>
+            <tbody>
+              {ops.map((op) => {
+                const plot = plotById.get(op.plotId);
+                return (
+                  <TR key={op.id} className="hover:bg-neutral-50">
+                    <TD>
+                      <Badge tone="info">{OP_LABEL[op.operationType] ?? op.operationType}</Badge>
+                    </TD>
+                    <TD className="font-medium text-neutral-900">{plot ? plot.name : <span className="font-mono text-xs">{op.plotId.slice(0, 8)}…</span>}</TD>
+                    <TD className="tabular-nums">{new Date(op.startedAt).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' })}</TD>
+                    <TD className="tabular-nums">{op.endedAt ? new Date(op.endedAt).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' }) : '—'}</TD>
+                    <TD className="text-right tabular-nums">{op.areaHa ?? '—'}</TD>
+                    <TD className="max-w-md truncate text-neutral-600">{op.notes ?? '—'}</TD>
+                  </TR>
+                );
+              })}
+            </tbody>
+          </Table>
+        </TableContainer>
       )}
     </div>
   );

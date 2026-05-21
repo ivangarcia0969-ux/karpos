@@ -5,3 +5,4 @@ export * from './phenology.js';
 export * from './field-ops.js';
 export * from './health.js';
 export * from './harvest.js';
+export * from './catalog.js';

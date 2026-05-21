@@ -16,6 +16,7 @@ import { FieldLogModule } from './modules/field-log/field-log.module.js';
 import { PhenologyModule } from './modules/phenology/phenology.module.js';
 import { HealthModule } from './modules/health/health.module.js';
 import { HarvestModule } from './modules/harvest/harvest.module.js';
+import { CatalogModule } from './modules/catalog/catalog.module.js';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { HarvestModule } from './modules/harvest/harvest.module.js';
     PhenologyModule,
     HealthModule,
     HarvestModule,
+    CatalogModule,
   ],
   controllers: [HealthController],
   providers: [

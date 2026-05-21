@@ -72,6 +72,21 @@ export class KarposClient {
     return this.request<{ principal: Principal }>('GET', '/v1/auth/me');
   }
 
+  // Catalog
+  listSpecies() {
+    return this.request<Array<{ id: string; code: string; scientificName: string; commonNameEs: string; commonNameEn: string; family: string | null; category: string | null }>>(
+      'GET',
+      '/v1/catalog/species',
+    );
+  }
+  listVarieties(speciesId?: string) {
+    const suffix = speciesId ? `?speciesId=${speciesId}` : '';
+    return this.request<Array<{ id: string; speciesId: string; code: string; name: string; originCountry: string | null }>>(
+      'GET',
+      `/v1/catalog/varieties${suffix}`,
+    );
+  }
+
   // Predios
   listFarms(query?: { q?: string; page?: number; pageSize?: number }) {
     const qs = new URLSearchParams();

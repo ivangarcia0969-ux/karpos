@@ -1,52 +1,92 @@
-import { PageHeader, Card, CardContent, EmptyState, Badge } from '@karpos/ui';
+import Link from 'next/link';
+import {
+  PageHeader,
+  EmptyState,
+  Badge,
+  TableContainer,
+  Table,
+  THead,
+  TR,
+  TH,
+  TD,
+} from '@karpos/ui';
+import { Trees, ChevronRight } from 'lucide-react';
 import { getServerClient } from '@/lib/api-client';
-import { CreateFarmForm } from './create-form';
+import { NewFarmButton } from './new-farm-button';
 
 export const dynamic = 'force-dynamic';
 
 export default async function PrediosPage() {
-  const client = getServerClient();
-  let farms: Awaited<ReturnType<typeof client.listFarms>>['rows'] = [];
+  const sdk = getServerClient();
+  let rows: Awaited<ReturnType<typeof sdk.listFarms>>['rows'] = [];
   let total = 0;
   try {
-    const res = await client.listFarms({ pageSize: 100 });
-    farms = res.rows;
+    const res = await sdk.listFarms({ pageSize: 100 });
+    rows = res.rows;
     total = res.total;
   } catch {
-    farms = [];
+    rows = [];
   }
 
+  const totalHa = rows.reduce((s, f) => s + Number(f.totalAreaHa ?? 0), 0);
+
   return (
-    <div className="space-y-6">
+    <div>
       <PageHeader
         title="Predios"
-        description={`Fincas registradas en tu organización (${total}).`}
+        description={`${total} finca${total === 1 ? '' : 's'} · ${totalHa.toFixed(1)} ha en producción`}
+        actions={<NewFarmButton />}
       />
-      <CreateFarmForm />
-      {farms.length === 0 ? (
+
+      {rows.length === 0 ? (
         <EmptyState
-          title="Aún no hay fincas"
-          description="Crea la primera finca con el formulario de arriba."
+          icon={<Trees className="h-10 w-10" />}
+          title="No hay fincas todavía"
+          description="Creá tu primera finca para empezar a registrar lotes, operaciones y cosechas."
+          action={<NewFarmButton variant="primary" />}
         />
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {farms.map((f) => (
-            <Card key={f.id}>
-              <CardContent className="space-y-2 pt-6">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-display text-lg">{f.name}</h3>
-                  <Badge tone="leaf">{f.code}</Badge>
-                </div>
-                <p className="text-sm text-karpos-bark/70">
-                  {f.region ?? '—'} · {f.countryCode}
-                </p>
-                <p className="text-sm text-karpos-bark/70">
-                  Área: {f.totalAreaHa ?? '—'} ha · Elevación: {f.elevationM ?? '—'} m
-                </p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <TableContainer>
+          <Table>
+            <THead>
+              <TR>
+                <TH>Finca</TH>
+                <TH>Código</TH>
+                <TH>Ubicación</TH>
+                <TH className="text-right">Área (ha)</TH>
+                <TH className="text-right">Elevación</TH>
+                <TH />
+              </TR>
+            </THead>
+            <tbody>
+              {rows.map((f) => (
+                <TR key={f.id} className="hover:bg-neutral-50">
+                  <TD className="font-medium text-neutral-900">
+                    <Link href={`/console/predios/${f.id}`} className="hover:text-brand-700">
+                      {f.name}
+                    </Link>
+                  </TD>
+                  <TD>
+                    <Badge tone="neutral">{f.code}</Badge>
+                  </TD>
+                  <TD className="text-neutral-600">
+                    {[f.region, f.locality].filter(Boolean).join(', ') || '—'} · {f.countryCode}
+                  </TD>
+                  <TD className="text-right tabular-nums">{f.totalAreaHa ?? '—'}</TD>
+                  <TD className="text-right tabular-nums">{f.elevationM ? `${f.elevationM} m` : '—'}</TD>
+                  <TD className="text-right">
+                    <Link
+                      href={`/console/predios/${f.id}`}
+                      className="inline-flex items-center gap-1 text-xs text-neutral-500 hover:text-brand-700"
+                    >
+                      Ver lotes <ChevronRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </TD>
+                </TR>
+              ))}
+            </tbody>
+          </Table>
+        </TableContainer>
       )}
     </div>
   );

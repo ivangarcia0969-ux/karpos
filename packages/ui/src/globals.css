@@ -3,28 +3,41 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --karpos-leaf: 14 92 58;
-    --karpos-leaf-hover: 10 74 46;
-    --karpos-bark: 59 42 31;
-    --karpos-cream: 250 247 242;
-    --karpos-fog: 236 236 232;
-  }
-
   html {
     color-scheme: light;
-    font-family: Inter, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
 
   body {
-    @apply bg-karpos-cream text-karpos-bark antialiased;
-  }
-
-  h1, h2, h3 {
-    font-family: Fraunces, Georgia, serif;
+    @apply bg-neutral-50 text-neutral-900;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   }
 
   *:focus-visible {
-    @apply outline-none ring-2 ring-karpos-leaf ring-offset-2 ring-offset-karpos-cream;
+    @apply outline-none ring-2 ring-brand-500 ring-offset-2 ring-offset-white;
+  }
+
+  table, .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(0,0,0,0.15);
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.25); }
+}
+
+@layer components {
+  .card-surface {
+    @apply rounded-lg border border-neutral-200 bg-white shadow-xs;
+  }
+  .stat-value {
+    @apply text-3xl font-semibold tracking-tight tabular-nums;
   }
 }

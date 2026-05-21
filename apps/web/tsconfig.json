@@ -6,6 +6,8 @@
     "moduleResolution": "Bundler",
     "jsx": "preserve",
     "strict": true,
+    "exactOptionalPropertyTypes": false,
+    "noUncheckedIndexedAccess": false,
     "incremental": true,
     "noEmit": true,
     "plugins": [

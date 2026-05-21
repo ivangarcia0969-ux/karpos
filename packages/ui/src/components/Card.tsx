@@ -5,29 +5,29 @@ export const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDi
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn('rounded-lg border border-karpos-fog bg-white shadow-sm', className)}
+      className={cn('rounded-lg border border-neutral-200 bg-white shadow-xs', className)}
       {...props}
     />
   ),
 );
 Card.displayName = 'Card';
 
-export const CardHeader = ({ className, ...p }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn('flex flex-col gap-1 px-6 py-4', className)} {...p} />
+export const CardHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+  <div className={cn('flex flex-col gap-1 border-b border-neutral-200 px-5 py-4', className)} {...props} />
 );
 
-export const CardTitle = ({ className, ...p }: React.HTMLAttributes<HTMLHeadingElement>) => (
-  <h3 className={cn('text-lg font-semibold text-karpos-bark', className)} {...p} />
+export const CardTitle = ({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
+  <h3 className={cn('text-sm font-semibold text-neutral-900', className)} {...props} />
 );
 
-export const CardDescription = ({ className, ...p }: React.HTMLAttributes<HTMLParagraphElement>) => (
-  <p className={cn('text-sm text-karpos-bark/70', className)} {...p} />
+export const CardDescription = ({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) => (
+  <p className={cn('text-xs text-neutral-500', className)} {...props} />
 );
 
-export const CardContent = ({ className, ...p }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn('px-6 pb-6', className)} {...p} />
+export const CardContent = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+  <div className={cn('p-5', className)} {...props} />
 );
 
-export const CardFooter = ({ className, ...p }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn('flex items-center gap-2 px-6 py-4 border-t border-karpos-fog', className)} {...p} />
+export const CardFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+  <div className={cn('flex items-center justify-end gap-2 border-t border-neutral-200 px-5 py-3 bg-neutral-50', className)} {...props} />
 );

@@ -7,3 +7,6 @@ export * from './components/Badge.js';
 export * from './components/PageHeader.js';
 export * from './components/EmptyState.js';
 export * from './components/Logo.js';
+export * from './components/Table.js';
+export * from './components/StatCard.js';
+export * from './components/Drawer.js';

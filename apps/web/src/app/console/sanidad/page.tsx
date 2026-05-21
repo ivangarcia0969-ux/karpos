@@ -1,15 +1,23 @@
-import { PageHeader, Card, CardContent, EmptyState, Badge } from '@karpos/ui';
+import {
+  PageHeader,
+  EmptyState,
+  Badge,
+  Card,
+  CardContent,
+  TableContainer,
+  Table,
+  THead,
+  TR,
+  TH,
+  TD,
+} from '@karpos/ui';
+import { Bug, AlertTriangle } from 'lucide-react';
 import { getServerClient } from '@/lib/api-client';
+import { NewScoutingButton } from './new-scouting-button';
+import { NewSprayButton } from './new-spray-button';
+import { VoidSprayButton } from './void-spray-button';
 
 export const dynamic = 'force-dynamic';
-
-const SEVERITY_TONE: Record<string, 'leaf' | 'clay' | 'amber'> = {
-  none: 'leaf',
-  low: 'leaf',
-  moderate: 'amber',
-  high: 'clay',
-  severe: 'clay',
-};
 
 export default async function SanidadPage() {
   const sdk = getServerClient();
@@ -18,97 +26,110 @@ export default async function SanidadPage() {
     sdk.listPlots().catch(() => []),
   ]);
 
-  const scoutingsByPlot = await Promise.all(
-    plots.slice(0, 25).map(async (p) => ({
-      plot: p,
-      scoutings: await sdk.listScoutings(p.id).catch(() => []),
-    })),
-  );
+  const plotById = new Map(plots.map((p) => [p.id, p]));
 
-  const activeSprays = sprays.filter((s) => !s.voidedAt);
   const today = new Date();
+  const activeSprays = sprays.filter((s) => !s.voidedAt);
   const phiActive = activeSprays.filter((s) => {
     const end = new Date(new Date(s.appliedAt).getTime() + s.phiDays * 86400000);
     return end > today;
   });
 
   return (
-    <div className="space-y-6">
+    <div>
       <PageHeader
         title="Sanidad+"
-        description={`Monitoreos y aplicaciones registradas. ${phiActive.length} lote(s) con PHI activo.`}
+        description={`${activeSprays.length} aplicaciones vigentes · ${phiActive.length} lote(s) con PHI activo`}
+        actions={
+          <div className="flex gap-2">
+            <NewScoutingButton plots={plots} />
+            <NewSprayButton plots={plots} />
+          </div>
+        }
       />
 
+      {phiActive.length > 0 ? (
+        <div className="mb-6 rounded-lg border border-warning-500/30 bg-warning-50 px-4 py-3">
+          <p className="flex items-center gap-2 text-sm text-warning-700">
+            <AlertTriangle className="h-4 w-4" />
+            <strong>{phiActive.length} aplicación(es)</strong> con PHI vigente. No cosechar los siguientes lotes hasta:
+          </p>
+          <ul className="mt-2 grid gap-1 text-xs text-warning-700 sm:grid-cols-2">
+            {phiActive.map((s) => {
+              const end = new Date(new Date(s.appliedAt).getTime() + s.phiDays * 86400000);
+              const plot = plotById.get(s.plotId);
+              return (
+                <li key={s.id}>
+                  <strong>{plot?.name ?? s.plotId.slice(0, 8)}</strong> · {s.productName} · hasta{' '}
+                  <span className="font-mono">{end.toISOString().slice(0, 10)}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ) : null}
+
       <Card>
-        <CardContent className="pt-6">
-          <h3 className="font-display text-lg">Aplicaciones recientes</h3>
+        <CardContent className="p-0">
+          <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-3">
+            <h2 className="text-sm font-semibold text-neutral-900">Aplicaciones fitosanitarias</h2>
+            <p className="text-xs text-neutral-500">Registros append-only — sólo se pueden anular con razón.</p>
+          </div>
           {activeSprays.length === 0 ? (
-            <p className="mt-3 text-sm text-karpos-bark/60">Sin aplicaciones registradas.</p>
+            <EmptyState
+              className="border-0 rounded-none"
+              icon={<Bug className="h-10 w-10" />}
+              title="Sin aplicaciones registradas"
+              description="Registrá la primera aplicación con producto, dosis, PHI y operario."
+              action={<NewSprayButton plots={plots} variant="primary" />}
+            />
           ) : (
-            <table className="mt-4 w-full text-sm">
-              <thead className="border-b border-karpos-fog text-left">
-                <tr>
-                  <th className="py-2">Producto</th>
-                  <th className="py-2">Ingrediente</th>
-                  <th className="py-2">Dosis</th>
-                  <th className="py-2">Aplicado</th>
-                  <th className="py-2 text-right">PHI (días)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {activeSprays.slice(0, 20).map((s) => (
-                  <tr key={s.id} className="border-b border-karpos-fog/40">
-                    <td className="py-2">{s.productName}</td>
-                    <td className="py-2 text-karpos-bark/70">{s.activeIngredient}</td>
-                    <td className="py-2">
-                      {s.doseAmount} {s.doseUnit}
-                    </td>
-                    <td className="py-2">{new Date(s.appliedAt).toLocaleDateString()}</td>
-                    <td className="py-2 text-right">{s.phiDays}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <TableContainer className="border-0 rounded-none shadow-none">
+              <Table>
+                <THead>
+                  <TR>
+                    <TH>Producto</TH>
+                    <TH>I.A.</TH>
+                    <TH>Lote</TH>
+                    <TH>Aplicado</TH>
+                    <TH className="text-right">Dosis</TH>
+                    <TH className="text-right">PHI</TH>
+                    <TH>Operario</TH>
+                    <TH />
+                  </TR>
+                </THead>
+                <tbody>
+                  {activeSprays.map((s) => {
+                    const end = new Date(new Date(s.appliedAt).getTime() + s.phiDays * 86400000);
+                    const phiOn = end > today;
+                    const plot = plotById.get(s.plotId);
+                    return (
+                      <TR key={s.id} className="hover:bg-neutral-50">
+                        <TD className="font-medium text-neutral-900">{s.productName}</TD>
+                        <TD className="text-neutral-600">{s.activeIngredient}</TD>
+                        <TD>{plot?.name ?? <span className="font-mono text-xs">{s.plotId.slice(0, 8)}…</span>}</TD>
+                        <TD className="tabular-nums">{new Date(s.appliedAt).toLocaleDateString('es-CO')}</TD>
+                        <TD className="text-right tabular-nums">
+                          {Number(s.doseAmount)} {s.doseUnit}
+                        </TD>
+                        <TD className="text-right">
+                          <Badge tone={phiOn ? 'warning' : 'success'}>
+                            {phiOn ? `${s.phiDays}d → ${end.toISOString().slice(5, 10)}` : 'libre'}
+                          </Badge>
+                        </TD>
+                        <TD className="text-neutral-600">{s.operator}</TD>
+                        <TD className="text-right">
+                          <VoidSprayButton id={s.id} />
+                        </TD>
+                      </TR>
+                    );
+                  })}
+                </tbody>
+              </Table>
+            </TableContainer>
           )}
         </CardContent>
       </Card>
-
-      <div className="space-y-4">
-        <h2 className="font-display text-xl">Monitoreos por lote</h2>
-        {scoutingsByPlot.filter((p) => p.scoutings.length > 0).length === 0 ? (
-          <EmptyState title="Sin monitoreos" description="Registrá un monitoreo desde la app móvil." />
-        ) : (
-          scoutingsByPlot
-            .filter((p) => p.scoutings.length > 0)
-            .map(({ plot, scoutings }) => (
-              <Card key={plot.id}>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-display text-lg">{plot.name}</h3>
-                    <Badge tone="leaf">{scoutings.length}</Badge>
-                  </div>
-                  <ul className="mt-3 space-y-1 text-sm">
-                    {scoutings.slice(0, 5).map((sc) => (
-                      <li
-                        key={sc.id}
-                        className="flex items-center justify-between border-b border-karpos-fog/40 pb-1"
-                      >
-                        <span>
-                          <span className="font-medium">{sc.target}</span>
-                          <span className="ml-2 text-karpos-bark/60">{sc.category}</span>
-                        </span>
-                        <div className="flex items-center gap-3">
-                          <Badge tone={SEVERITY_TONE[sc.severity] ?? 'leaf'}>{sc.severity}</Badge>
-                          <span className="text-xs text-karpos-bark/60">{sc.observedOn}</span>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-            ))
-        )}
-      </div>
     </div>
   );
 }
