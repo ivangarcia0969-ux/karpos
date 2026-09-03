@@ -10,7 +10,7 @@ export default function Landing() {
           <Logo />
           <nav className="hidden items-center gap-6 text-sm md:flex">
             <Link href="#features" className="text-neutral-600 hover:text-neutral-900">Producto</Link>
-            <Link href="#planes" className="text-neutral-600 hover:text-neutral-900">Planes</Link>
+            <Link href="/planes" className="text-neutral-600 hover:text-neutral-900">Planes</Link>
             <Link href="/portal/trazabilidad" className="text-neutral-600 hover:text-neutral-900">Trazabilidad</Link>
           </nav>
           <div className="flex items-center gap-2">
