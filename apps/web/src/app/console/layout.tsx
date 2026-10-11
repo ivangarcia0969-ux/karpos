@@ -18,7 +18,9 @@ import { ActiveLink } from './active-link';
 const NAV = [
   { href: '/console', label: 'Tablero', Icon: LayoutDashboard, exact: true },
   { href: '/console/predios', label: 'Predios', Icon: Trees },
-  { href: '/console/bitacora', label: 'Bitácora Verde', Icon: ClipboardList },
+  { href: '/console/asignaciones', label: 'Asignaciones', Icon: ClipboardList },
+  { href: '/console/mis-tareas', label: 'Mis Tareas (Kiosco)', Icon: Sprout },
+  { href: '/console/bitacora', label: 'Bitácora Verde', Icon: Trees },
   { href: '/console/fenoflow', label: 'Fenoflow', Icon: Sprout },
   { href: '/console/sanidad', label: 'Sanidad+', Icon: Bug },
   { href: '/console/cosecha', label: 'Cosecha360', Icon: Wheat },

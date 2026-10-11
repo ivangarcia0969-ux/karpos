@@ -57,6 +57,18 @@ export class AuthController {
     return { principal };
   }
 
+  @Public()
+  @Post('login-pin')
+  @HttpCode(200)
+  async loginPin(
+    @Body(new ZodValidationPipe(LoginSchema)) body: z.infer<typeof LoginSchema>, // using email as identifier for now
+    @Res({ passthrough: true }) res: FastifyReply,
+  ) {
+    const { token, principal } = await this.auth.loginPin(body.email, body.password); // password here acts as PIN
+    this.setCookie(res, token);
+    return { principal };
+  }
+
   @Post('logout')
   @HttpCode(204)
   async logout(@Res({ passthrough: true }) res: FastifyReply) {

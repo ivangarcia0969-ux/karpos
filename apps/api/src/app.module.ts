@@ -17,6 +17,8 @@ import { PhenologyModule } from './modules/phenology/phenology.module.js';
 import { HealthModule } from './modules/health/health.module.js';
 import { HarvestModule } from './modules/harvest/harvest.module.js';
 import { CatalogModule } from './modules/catalog/catalog.module.js';
+import { AssignmentsModule } from './modules/assignments/assignments.module.js';
+import { TelegramModule } from './modules/telegram/telegram.module.js';
 
 @Module({
   imports: [
@@ -41,6 +43,8 @@ import { CatalogModule } from './modules/catalog/catalog.module.js';
     HealthModule,
     HarvestModule,
     CatalogModule,
+    AssignmentsModule,
+    TelegramModule,
   ],
   controllers: [HealthController],
   providers: [

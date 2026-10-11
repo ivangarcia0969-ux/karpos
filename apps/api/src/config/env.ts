@@ -15,6 +15,9 @@ const Schema = z.object({
   COOKIE_NAME: z.string().default('karpos.session'),
   COOKIE_DOMAIN: z.string().optional(),
   COOKIE_SECURE: z.coerce.boolean().default(true),
+  
+  TELEGRAM_BOT_TOKEN: z.string().optional(),
+  TELEGRAM_WEBHOOK_SECRET: z.string().optional(),
 
   SENTRY_DSN: z.string().optional(),
 });

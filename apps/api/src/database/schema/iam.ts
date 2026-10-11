@@ -5,6 +5,7 @@ export const users = karpos.table('users', {
   id: uuid('id').primaryKey().defaultRandom(),
   email: text('email').notNull().unique(),
   passwordHash: text('password_hash').notNull(),
+  pinHash: text('pin_hash'),
   displayName: text('display_name').notNull(),
   locale: text('locale').notNull().default('es-CO'),
   status: text('status').notNull().default('active'),
